@@ -58,7 +58,7 @@
         <div class="ui grid" style="margin-top:5em">
         <div class="sixteen wide column">
           <sui-tab>
-            <sui-tab-pane title="Sale">
+            <sui-tab-pane title="Sale" icon="dollar">
               <sui-form>
                 <sui-form-field required>
                   <label>Sell to</label>
@@ -91,64 +91,89 @@
                 <!-- Event Form -->
                 <div id="events">
                   <transition-group mode="out-in" name="fade">
-                    <event-form v-for="n in numberOfEvents" 
-                              :key="n" 
-                              type="2"></event-form>
+                    <event-form v-if="(customer != null)" 
+                                v-for="n in numberOfEvents" 
+                                :key="n" 
+                                :customer="customer" 
+                                :cashier="{ id: 3 }"
+                                type="2" 
+                    />
                   </transition-group>
                 </div>
 
                 <br />
-                <sui-button label-position="left" 
+                <!-- Add Another Event -->
+                <sui-button v-if="(customer != null)"
+                            label-position="left" 
                             color="black" 
                             icon="calendar plus alternate"
                             @click="addEvent"
                             >
                   Add Another Event
                 </sui-button>
-
+                <!-- Products -->
                 <div class="ui segment" v-if="productOptions.length > 0">
                   <div class="ui horizontal divider header">
                     <i class="box icon"></i> Products
                   </div>
-                  <table class="ui selectable single line very compact table">
-                    <thead>
-                      <tr class="header">
-                        <th>Product</th>
-                        <th>Amount / Price</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="product in productOptions" :key="product.id">
-                        <td>
-                          <div class="ui small header">
-                          <img :src="product.cover">
-                            <div class="content">
-                              {{ product.name }}
-                              <div class="ui tiny black label">
-                                {{ product.type.name }}
-                              </div>
-                              <div class="sub header">
-                                {{ product.description }}
+                  <div class="ui form">
+                      <div class="field">
+                        <sui-dropdown fluid selection
+                                      multiple 
+                                      placeholder="Select products"
+                                      :options="productOptions"
+                                      v-model="selectedProducts"
+                        />
+                    </div>
+                  </div>
+                  <transition mode="out-in" name="fade">
+                    <div id="products" v-if="selectedProducts.length > 0">
+                      <table class="ui selectable single line very compact table">
+                      <thead>
+                        <tr class="header">
+                          <th>Product</th>
+                          <th>Amount / Price</th>
+                        </tr>
+                      </thead>
+                      <tbody name="fade" is="transition-group" mode="out-in">
+                        <tr v-for="product in productOptions"
+                            v-if="selectedProducts.includes(product.id)" 
+                            :key="product.id">
+                          <td v-if="selectedProducts.includes(product.id)">
+                            <div class="ui small header">
+                            <img :src="product.cover">
+                              <div class="content">
+                                {{ product.name }}
+                                <div class="ui tiny black label">
+                                  {{ product.type.name }}
+                                </div>
+                                <div class="sub header">
+                                  {{ product.description }}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div class="ui right labeled input">
-                             <input type="text" size="1" placeholder="Amount">
-                             <div class="ui basic label">
-                               $ {{ product.price.toFixed(2) }} each
-                             </div>
-                           </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                          </td>
+                          <td>
+                            <div class="ui right labeled input">
+                              <input type="text" 
+                                    size="1" 
+                                    v-model="product.quantity" 
+                                    placeholder="Amount">
+                              <div class="ui basic label">
+                                $ {{ product.price.toFixed(2) }} each
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                      </table>
+                    </div>
+                  </transition>
                 </div>
               </sui-form>
             </sui-tab-pane>
             <!--- Payment Tab --->
-            <sui-tab-pane title="Payment">
+            <sui-tab-pane title="Payment" icon="money">
               <sui-form>
                 <div class="four fields">
                   <div class="required field">
@@ -355,7 +380,7 @@
              </td>
              <td>
                <div class="ui right labeled input">
-                 <input type="text" size="1" placeholder="Amount">
+                 <input type="text" size="1" placeholder="Amount" v-model="ticket.quantity">
                  <div class="ui basic label">
                    $ {{ ticket.price.toFixed(2) }} each
                  </div>

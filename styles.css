@@ -5,9 +5,9 @@ textarea {
 #top {
   position: fixed;
   z-index: 1;
-  padding-bottom: 0;
-  padding-top: 0;
+  padding: 0 0 0 0 !important;
   margin-top: -1em;
+  width: 100vw !important;
 }
 
 .fade-enter-active, .fade-leave-active {

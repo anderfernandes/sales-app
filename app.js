@@ -4,7 +4,7 @@ Vue.component("flatpickr", VueFlatpickr)
 
 const EventForm = Vue.component("event-form", {
 	template: "#event-form",
-	props: ["type"],
+	props: ["type", "customer", "cashier"],
 	data: () => ({
 		eventOptions: [],
 		event: null,
@@ -25,7 +25,7 @@ const EventForm = Vue.component("event-form", {
 			axios
 				.get(`http://10.51.136.173:8000/api/events?start=${this.date}&type=${this.type}`)
 				.then(response => {
-					this.eventOptions = response.data.map((event) => {
+					this.eventOptions = response.data.map(event => {
 						let d    = new Date(event.start)
 						// Format date and time
 						let a    = d.getHours()   >= 12 ? "PM" : "AM"
@@ -44,8 +44,25 @@ const EventForm = Vue.component("event-form", {
 		fetchTickets() {
 			axios
 			.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.type}`)
-			.then(response => this.ticketOptions = response.data.data)
-			.catch(error => alert("Unable to fetch tickets."))
+			.then(response => {
+				this.ticketOptions = response.data.data.map(ticket => ({ 
+					id             : ticket.id,
+					name           : ticket.name,
+					description    : ticket.description,
+					price					 : ticket.price,
+					active         : ticket.active,
+					in_cashier     : ticket.in_cashier,
+					public				 : ticket.public,
+					quantity       : 0,
+					type_id        : ticket.id,
+					event_id       : this.event,
+					//customer_id    : this.customer.id,
+					cashier_id     : this.cashier.id,
+					//organization_id: this.customer.organization.id,
+				}))
+				console.log(this.ticketOptions)
+			})
+			.catch(error => alert(error.message))
 		},
 	},
 	computed: {
@@ -56,6 +73,25 @@ const EventForm = Vue.component("event-form", {
 			let formattedDate = `${day}, ${month} ${date.getDate()}, ${date.getFullYear()}`
 			return formattedDate
 		},
+		/*tickets() {
+			let tickets = this.ticketOptions.map(ticket => ({
+				id             : ticket.id,
+				name           : ticket.name,
+				description    : ticket.description,
+				price					 : ticket.price,
+				active         : ticket.active,
+				in_cashier     : ticket.in_cashier,
+				public				 : ticket.public,
+				quantity       : 0,
+				type_id        : ticket.type.id,
+				event_id       : this.event,
+				customer_id    : this.customer.id,
+				cashier_id     : this.cashier.id,
+				organization_id: this.customer.organization.id,
+			}))
+
+			return tickets
+		},*/
 	},
 	created() {
 		this.fetchTickets()
@@ -83,11 +119,15 @@ new Vue({
       ],
       customerOptions : [],
       saleStatuses: [
-      	{ key: "open",  text: "Open", value: "open"},
-        { key: "confirmed",  text: "Confirmed", value: "confirmed"},
+      	{ key: "open"     ,  text: "Open"     , value: "open"     , icon: "unlock"},
+				{ key: "confirmed",  text: "Confirmed", value: "confirmed", icon: "thumbs up"},
+				{ key: "complete" ,  text: "Completed", value: "complete" , icon: "check"},
+				{ key: "tentative",  text: "Tentative", value: "tentative", icon: "help"},
+				{ key: "no show"  ,  text: "No Show"  , value: "no show"  , icon: "thumbs down"},
       ],
       gradeOptions: [],
 			productOptions: [],
+			selectedProducts: [],
       taxableOptions: [
       	{ key: "No",  text: "No",  value: 0 },
         { key: "Yes", text: "Yes", value: 1 },
@@ -101,7 +141,13 @@ new Vue({
 		this.fetchProducts()
 		this.fetchPaymentMethods()
 		//console.log(this.$vnode.key)
-  },
+	},
+	updated() {
+		console.log(this.productOptions)
+	},
+	computed: {
+
+	},
   methods: {
 		// Fetch Customers
   	fetchCustomers() {
@@ -123,7 +169,7 @@ new Vue({
 		fetchGrades() {
 			axios
 				.get("http://10.51.136.173:8000/api/grades")
-				.then(response => this.gradeOptions = response.data.data.map((grade) => ({
+				.then(response => this.gradeOptions = response.data.data.map(grade => ({
 					key  : grade.id,
 					text : grade.name,
 					value: grade.id,
@@ -134,7 +180,20 @@ new Vue({
 		fetchProducts() {
 			axios
 				.get("http://10.51.136.173:8000/api/products")
-				.then(response => this.productOptions = response.data.data)
+				.then(response => this.productOptions = response.data.data.map(product => ({
+					key  : product.id,
+					text : `${product.name} (${product.type.name})`,
+					value: product.id,
+					icon : "box",
+					// Non-dropdown properties
+					id				 : product.id,
+					name			 : product.name,
+					quantity   : 0,
+					type       : product.type,
+					description: product.description,
+					price      : product.price,
+					cover      : product.cover,
+				})))
 				.catch(error => alert("Unable to load products."))
 		},
 		// Fetch Payment Methods
