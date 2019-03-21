@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Sales</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.5.2/flatpickr.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.8/vue.min.js"></script>
+  <script src="https://unpkg.com/semantic-ui-vue/dist/umd/semantic-ui-vue.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.5.2/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-flatpickr-component@8.1.1/dist/vue-flatpickr.min.js"></script>
+</head>
+<body>
+  <br /><br />
+  <!-- Sales Form Template -->
+  <template id="sales-form">
+    <div>
+      <!--- Buttons --->
+      <div class="ui grid">
+        <div class="ui sixteen wide column" id="top">
+          <div class="ui grid" style="background-color:white">
+            <div class="ui sixteen wide column" style="padding-bottom: 0">
+              <div class="ui container">
+                <div class="ui form">
+                  <div class="four inline fields" style="margin-bottom: 0">
+                    <div class="field">
+                    <sui-button basic color="black" icon="left chevron">
+                      Back
+                    </sui-button>
+                    <sui-button label-position="left" color="green" icon="save">
+                      Save
+                    </sui-button>
+                  </div>
+                    <div class="field"></div>
+                    <div class="required field" style="text-align: right">
+                      <label>Status</label>
+                    </div>
+                    <div class="required field">
+                      <sui-dropdown
+                        v-model="saleStatus"
+                        :options="saleStatuses"
+                        placeholder="Sale Status"
+                        fluid selection />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ui container">
+      <!--- Tabs --->
+        <div class="ui grid" style="margin-top:5em">
+        <div class="sixteen wide column">
+          <sui-tab>
+            <sui-tab-pane title="Sale">
+              <sui-form>
+                <sui-form-field required>
+                  <label>Sell to</label>
+                  <sui-dropdown
+                    fluid
+                    v-model="sellTo"
+                    :options="sellToOptions"
+                    placeholder="Sell To"
+                    selection />
+                </sui-form-field>
+                <sui-form-field required>
+                  <label>Customer</label>
+                  <sui-dropdown
+                    fluid
+                    v-model="customer"
+                    :options="customerOptions"
+                    placeholder="Customer"
+                    search selection />
+                </sui-form-field>
+                <sui-form-field>
+                  <label>Grades</label>
+                  <sui-dropdown
+                    fluid multiple
+                    v-model="grades"
+                    :options="gradeOptions"
+                    placeholder="Grades"
+                    multiple selection />
+                </sui-form-field>
+
+                <!-- Event Form -->
+                <div id="events">
+                  <transition-group mode="out-in" name="fade">
+                    <event-form v-for="n in numberOfEvents" 
+                              :key="n" 
+                              type="2"></event-form>
+                  </transition-group>
+                </div>
+
+                <br />
+                <sui-button label-position="left" 
+                            color="black" 
+                            icon="calendar plus alternate"
+                            @click="addEvent"
+                            >
+                  Add Another Event
+                </sui-button>
+
+                <div class="ui segment" v-if="productOptions.length > 0">
+                  <div class="ui horizontal divider header">
+                    <i class="box icon"></i> Products
+                  </div>
+                  <table class="ui selectable single line very compact table">
+                    <thead>
+                      <tr class="header">
+                        <th>Product</th>
+                        <th>Amount / Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="product in productOptions" :key="product.id">
+                        <td>
+                          <div class="ui small header">
+                          <img :src="product.cover">
+                            <div class="content">
+                              {{ product.name }}
+                              <div class="ui tiny black label">
+                                {{ product.type.name }}
+                              </div>
+                              <div class="sub header">
+                                {{ product.description }}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="ui right labeled input">
+                             <input type="text" size="1" placeholder="Amount">
+                             <div class="ui basic label">
+                               $ {{ product.price.toFixed(2) }} each
+                             </div>
+                           </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </sui-form>
+            </sui-tab-pane>
+            <!--- Payment Tab --->
+            <sui-tab-pane title="Payment">
+              <sui-form>
+                <div class="four fields">
+                  <div class="required field">
+                    <label>Taxable</label>
+                    <sui-dropdown
+                      v-model="taxable"
+                      :options="taxableOptions"
+                      placeholder="Taxable"
+                      selection />
+                  </div>
+                </div>
+                <div class="four fields">
+                  <div class="field">
+                    <label>Payment Method</label>
+                    <sui-dropdown
+                      fluid
+                      v-model="paymentMethod"
+                      :options="paymentOptions"
+                      placeholder="Payment Method"
+                      selection />
+                  </div>
+                  <div class="field">
+                    <label>Tendered</label>
+                    <div class="ui labeled input">
+                      <div class="ui basic label">$</div>
+                      <input type="text" placeholder="Tendered">
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Change Due</label>
+                    <div class="ui labeled input">
+                      <div class="ui basic label">$</div>
+                      <input type="text" placeholder="Change Due">
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Reference</label>
+                    <div class="ui labeled input">
+                      <div class="ui basic label">$</div>
+                      <input type="text" placeholder="Reference">
+                    </div>
+                  </div>
+                </div>
+                <div class="ui small horizontal divider header">
+                  <i class="money icon"></i>
+                  Payments
+                </div>
+                <table class="ui selectable single table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Method</th>
+                    <th>Amount Paid</th>
+                    <th>Date</th>
+                    <th>Cashier</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="ui header">1234</div>
+                    </td>
+                    <td><i class="cc visa icon"></i>Visa</td>
+                    <td>$ 5.41</td>
+                    <td>Thursday, March 7, 2019 at 10:14 PM</td>
+                    <td>
+                      <i class="user circle icon"></i>
+                      Anderson
+                    </td>
+                  </tr>
+                </tbody>
+                </table>
+              </sui-form>
+            </sui-tab-pane>
+          </sui-tab>
+          <!--- Memos --->
+          <div class="ui small horizontal divider header">
+            <i class="comments outline icon"></i>
+            Memos
+          </div>
+          <div class="ui comments">
+            <div class="comment">
+              <div class="avatar"><i class="user circle big icon"></i></div>
+              <div class="content">
+                <div class="author">
+                  Anderson Fernandes
+                  <div class="metadata">Today at 5:45 PM</div>
+                </div>
+                <div class="text">This is cool!!!</div>
+              </div>
+            </div>
+          </div>
+          <div class="ui form">
+            <div class="field">
+              <label>Message</label>
+              <textarea cols="8" rows="3" placeholder="Write a memo" style="margin-bottom:10em"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+      <!--- Totals --->
+      <div class="ui grid">
+        <div class="sixteen wide column" style="padding: 0 0 0 0 !important">
+          <div class="ui bottom fixed sticky" style="width:100%">
+            <div class="ui inverted segment" style="border-radius: 0 !important">
+              <div class="ui container">
+                <div class="ui inverted form">
+                <div class="five fields">
+                  <!--- Subtotal --->
+                  <div class="field">
+                    <label>Subtotal</label>
+                    <div class="ui inverted transparent left icon input">
+                      <i class="dollar icon"></i>
+                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    </div>
+                  </div>
+                  <!--- Tax --->
+                  <div class="field">
+                    <label>Tax (8.25%)</label>
+                    <div class="ui inverted transparent left icon input">
+                      <i class="dollar icon"></i>
+                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    </div>
+                  </div>
+                  <!--- Total --->
+                  <div class="field">
+                    <label>Total</label>
+                    <div class="ui inverted transparent left icon input">
+                      <i class="dollar icon"></i>
+                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    </div>
+                  </div>
+                  <!--- Paid --->
+                  <div class="field">
+                    <label>Paid</label>
+                    <div class="ui inverted transparent left icon input">
+                      <i class="dollar icon"></i>
+                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    </div>
+                  </div>
+                  <!-- Balance -->
+                  <div class="field">
+                    <label>Balance</label>
+                    <div class="ui inverted transparent left icon input">
+                      <i class="dollar icon"></i>
+                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+  <!-- Event Template -->
+  <template id="event-form">
+    <div class="ui inverted segment">
+      <div class="ui inverted horizontal divider header">
+        <i class="calendar check icon"></i> Event #{{ $vnode.key }}
+      </div>
+      <div class="required field">
+        <label>Date</label>
+        <div class="ui left icon input">
+          <i class="calendar alternate outline icon"></i>
+          <flatpickr placeholder="Date"
+                     v-model="date"
+                     :config="flatpickrConfig"
+                     @input="fetchEvents"
+          />
+        </div>
+
+      </div>
+      <div class="required field">
+        <label>Event</label>
+        <sui-dropdown
+          fluid
+          :options="eventOptions"
+          v-model="event"
+          :placeholder="eventOptions.length == 0 ? 'No events found' : `${eventOptions.length} ${eventOptions.length == 1 ? 'event' : 'events'} found` "
+          selection
+        />
+      </div>
+      <table class="ui selectable single line very compact table">
+        <thead>
+          <tr class="header">
+            <th>Ticket</th>
+            <th>Amount / Price</th>
+          </tr>
+         </thead>
+         <tbody>
+           <tr v-for="ticket in ticketOptions" :key="ticket.id">
+             <td>
+               <div class="ui small header">
+                 <i class="ticket icon"></i>
+                 <div class="content">
+                   {{ ticket.name }}
+                   <div class="sub header">{{ ticket.description }}</div>
+                 </div>
+               </div>
+             </td>
+             <td>
+               <div class="ui right labeled input">
+                 <input type="text" size="1" placeholder="Amount">
+                 <div class="ui basic label">
+                   $ {{ ticket.price.toFixed(2) }} each
+                 </div>
+               </div>
+             </td>
+           </tr>
+         </tbody>
+      </table>
+    </div>
+  </template>
+  <script src="app.js"></script>
+</body>
+</html>
