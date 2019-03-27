@@ -2,9 +2,20 @@ Vue.config.devtools = true // DISABLE THIS IN PRODUCTION
 Vue.use(SemanticUIVue)
 Vue.component("flatpickr", VueFlatpickr)
 
+const store = new Vuex.Store({
+	// alias to data in vue
+	state: {
+
+	},
+	// alias to methods in vue
+	actions: {
+
+	},
+})
+
 const EventForm = Vue.component("event-form", {
 	template: "#event-form",
-	props: ["type", "customer", "cashier", "total"],
+	props: ["type", "customer", "cashier"],
 	data: () => ({
 		eventOptions: [],
 		event: null,
@@ -49,7 +60,7 @@ const EventForm = Vue.component("event-form", {
 				this.ticketOptions = response.data.data.map(ticket => ({
 					key            : ticket.id,
 					text           : `${ticket.name}`,
-					value          : {id: ticket.id, price: ticket.price, quantity: 0},
+					value          : ticket.id,
 					icon					 : "ticket", 
 					id             : ticket.id,
 					name           : ticket.name,
@@ -61,9 +72,9 @@ const EventForm = Vue.component("event-form", {
 					quantity       : 0,
 					type_id        : ticket.id,
 					event_id       : this.event,
-					customer_id    : this.customer.id,
+					//customer_id    : this.customer.id,
 					cashier_id     : this.cashier.id,
-					organization_id: this.customer.organization.id,
+					//organization_id: this.customer.organization.id,
 				}))
 				
 			})
@@ -78,22 +89,22 @@ const EventForm = Vue.component("event-form", {
 			let formattedDate = `${day}, ${month} ${date.getDate()}, ${date.getFullYear()}`
 			return formattedDate
 		},
-		total() {
+		/*total() {
 			return this.ticketOptions
 							.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0)
-		}
+		}*/
 	},
 	created() {
 		this.fetchTickets()
 		this.fetchEvents()
 	},
 	updated() {
-		console.log(this.total)
+		
 	}
 })
 
 // App
-new Vue({
+let app = new Vue({
 	el: "#sales-form",
   data() {
   	return {
@@ -198,7 +209,7 @@ new Vue({
 					return {
 	        	key : customer.id,
 	          text: `${customer.name} (${customer.role}${organization})`,
-						value: { id: customer.id, organization: {id: customer.organization.id }},
+						value: customer.id,
 						icon: "user circle",
 						organization: { id: customer.organization.id },
 					}
