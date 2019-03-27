@@ -4,12 +4,13 @@ Vue.component("flatpickr", VueFlatpickr)
 
 const EventForm = Vue.component("event-form", {
 	template: "#event-form",
-	props: ["type", "customer", "cashier"],
+	props: ["type", "customer", "cashier", "total"],
 	data: () => ({
 		eventOptions: [],
 		event: null,
 		date: "",
 		ticketOptions: [],
+		selectedTickets: [],
 		flatpickrConfig: {
 			dateFormat: "l, F j, Y",
 			defaultDate: "today",
@@ -45,7 +46,11 @@ const EventForm = Vue.component("event-form", {
 			axios
 			.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.type}`)
 			.then(response => {
-				this.ticketOptions = response.data.data.map(ticket => ({ 
+				this.ticketOptions = response.data.data.map(ticket => ({
+					key            : ticket.id,
+					text           : `${ticket.name}`,
+					value          : {id: ticket.id, price: ticket.price, quantity: 0},
+					icon					 : "ticket", 
 					id             : ticket.id,
 					name           : ticket.name,
 					description    : ticket.description,
@@ -56,13 +61,13 @@ const EventForm = Vue.component("event-form", {
 					quantity       : 0,
 					type_id        : ticket.id,
 					event_id       : this.event,
-					//customer_id    : this.customer.id,
+					customer_id    : this.customer.id,
 					cashier_id     : this.cashier.id,
-					//organization_id: this.customer.organization.id,
+					organization_id: this.customer.organization.id,
 				}))
-				console.log(this.ticketOptions)
+				
 			})
-			.catch(error => alert(error.message))
+			.catch(error => console.log(error.message))
 		},
 	},
 	computed: {
@@ -73,30 +78,18 @@ const EventForm = Vue.component("event-form", {
 			let formattedDate = `${day}, ${month} ${date.getDate()}, ${date.getFullYear()}`
 			return formattedDate
 		},
-		/*tickets() {
-			let tickets = this.ticketOptions.map(ticket => ({
-				id             : ticket.id,
-				name           : ticket.name,
-				description    : ticket.description,
-				price					 : ticket.price,
-				active         : ticket.active,
-				in_cashier     : ticket.in_cashier,
-				public				 : ticket.public,
-				quantity       : 0,
-				type_id        : ticket.type.id,
-				event_id       : this.event,
-				customer_id    : this.customer.id,
-				cashier_id     : this.cashier.id,
-				organization_id: this.customer.organization.id,
-			}))
-
-			return tickets
-		},*/
+		total() {
+			return this.ticketOptions
+							.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0)
+		}
 	},
 	created() {
 		this.fetchTickets()
 		this.fetchEvents()
 	},
+	updated() {
+		console.log(this.total)
+	}
 })
 
 // App
@@ -109,9 +102,12 @@ new Vue({
       sellTo: null,
       customer: null,
       grades: null,
-      taxable: 0,
+			taxable: false,
+			tendered: 0,
+			settings: { tax: 0 },
 			paymentMethod: 1,
 			numberOfEvents: 1,
+			reference: "",
       // Component Data
       sellToOptions: [
       	{ key: "organization", text: "Organization", value: 1 },
@@ -129,24 +125,67 @@ new Vue({
 			productOptions: [],
 			selectedProducts: [],
       taxableOptions: [
-      	{ key: "No",  text: "No",  value: 0 },
-        { key: "Yes", text: "Yes", value: 1 },
+      	{ key: "No",  text: "No",  value: false },
+        { key: "Yes", text: "Yes", value: true },
       ],
       paymentOptions: [],
     }
   },
   created() {
+		this.fetchSettings()
   	this.fetchCustomers()
 		this.fetchGrades()
 		this.fetchProducts()
 		this.fetchPaymentMethods()
+		
 		//console.log(this.$vnode.key)
 	},
 	updated() {
-		console.log(this.productOptions)
+		//console.log(this.total)
 	},
 	computed: {
-
+		subtotal() {
+			if (this.selectedProducts.length > 0)
+				// ticket quantity's data comes from product options array
+				return this.productOptions.reduce((total, product) => 
+					(total + (product.quantity * product.price)), 0
+				).toLocaleString("en-US", {minimumFractionDigits: 2})
+			else 
+				return (0).toLocaleString("en-US", {minimumFractionDigits: 2})
+		},
+		tax() {
+			if (this.taxable)
+				return (parseFloat(this.subtotal) * this.settings.tax)
+					.toLocaleString("en-US", {minimumFractionDigits: 2})
+			else
+				return (0).toLocaleString("en-US", {minimumFractionDigits: 2})
+		},
+		total() {
+			if (this.taxable)
+				return (parseFloat(this.subtotal) + (parseFloat(this.tax)))
+					.toLocaleString("en-US", {minimumFractionDigits: 2})
+			else
+				return this.subtotal
+		},
+		paid() {
+			// Check if sale data and tendered exists, if not, return 0
+			if (parseFloat(this.tendered) > 0)
+				return parseFloat(this.tendered).toLocaleString("en-US", {minimumFractionDigits: 2})
+			else
+				return (0).toLocaleString("en-US", {minimumFractionDigits: 2})
+		},
+		balance() {
+			// Check if sale data exists and payments exist, if not, return 0
+			let result = parseFloat(this.total) - parseFloat(this.tendered)
+			if (result >= 0)
+				return result.toLocaleString("en-US", {minimumFractionDigits: 2})
+			else 
+				return (0).toLocaleString("en-US", {minimumFractionDigits: 2})
+		},
+		change_due() {
+			return (parseFloat(this.total) - parseFloat(this.tendered))
+							.toLocaleString("en-US", {minimumFractionDigits: 2})
+		}
 	},
   methods: {
 		// Fetch Customers
@@ -159,8 +198,9 @@ new Vue({
 					return {
 	        	key : customer.id,
 	          text: `${customer.name} (${customer.role}${organization})`,
-						value: customer.id,
-						icon: "user circle"
+						value: { id: customer.id, organization: {id: customer.organization.id }},
+						icon: "user circle",
+						organization: { id: customer.organization.id },
 					}
         }))
         .catch(error => alert("Unable to load customers."))
@@ -183,7 +223,7 @@ new Vue({
 				.then(response => this.productOptions = response.data.data.map(product => ({
 					key  : product.id,
 					text : `${product.name} (${product.type.name})`,
-					value: product.id,
+					value: { id: product.id, price: product.price, quantity: 0 },
 					icon : "box",
 					// Non-dropdown properties
 					id				 : product.id,
@@ -201,17 +241,23 @@ new Vue({
 			axios
 				.get("http://10.51.136.173:8000/api/payment-methods")
 				.then(response => this.paymentOptions = response.data.data.map(payment_method => ({
-					key: payment_method.id, 
-					text: payment_method.name,
+					key  : payment_method.id, 
+					text : payment_method.name,
 					value: payment_method.id,
-					icon: payment_method.icon
+					icon : payment_method.icon
 				})))
 				.catch(error => alert("Unable to load payment methods."))
+		},
+		// Fetch Settings
+		fetchSettings() {
+			axios
+				.get("http://10.51.136.173:8000/api/settings")
+				.then(response => this.settings.tax = parseFloat(response.data.tax) / 100)
 		},
 		// Add a new event form for another event
 		addEvent(event) {
 			event.preventDefault()
 			this.numberOfEvents++
-		}
+		},
   },
 })

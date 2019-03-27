@@ -40,11 +40,11 @@
                       <label>Status</label>
                     </div>
                     <div class="required field">
-                      <sui-dropdown
-                        v-model="saleStatus"
-                        :options="saleStatuses"
-                        placeholder="Sale Status"
-                        fluid selection />
+                      <sui-dropdown fluid selection direction="upward"
+                                    v-model="saleStatus"
+                                    :options="saleStatuses"
+                                    placeholder="Sale Status"
+                      />
                     </div>
                   </div>
                 </div>
@@ -62,30 +62,30 @@
               <sui-form>
                 <sui-form-field required>
                   <label>Sell to</label>
-                  <sui-dropdown
-                    fluid
-                    v-model="sellTo"
-                    :options="sellToOptions"
-                    placeholder="Sell To"
-                    selection />
+                  <sui-dropdown fluid selection direction="upward"
+                                v-model="sellTo"
+                                :options="sellToOptions"
+                                placeholder="Sell To"
+                                selection 
+                  />
                 </sui-form-field>
                 <sui-form-field required>
                   <label>Customer</label>
-                  <sui-dropdown
-                    fluid
-                    v-model="customer"
-                    :options="customerOptions"
-                    placeholder="Customer"
-                    search selection />
+                  <sui-dropdown fluid direction="upward"
+                                v-model="customer"
+                                :options="customerOptions"
+                                placeholder="Customer"
+                                search selection 
+                  />
                 </sui-form-field>
                 <sui-form-field>
                   <label>Grades</label>
-                  <sui-dropdown
-                    fluid multiple
-                    v-model="grades"
-                    :options="gradeOptions"
-                    placeholder="Grades"
-                    multiple selection />
+                  <sui-dropdown fluid multiple direction="upward"
+                                v-model="grades"
+                                :options="gradeOptions"
+                                placeholder="Grades"
+                                multiple selection 
+                  />
                 </sui-form-field>
 
                 <!-- Event Form -->
@@ -96,7 +96,8 @@
                                 :key="n" 
                                 :customer="customer" 
                                 :cashier="{ id: 3 }"
-                                type="2" 
+                                type="2"
+                                total="0.00"
                     />
                   </transition-group>
                 </div>
@@ -118,7 +119,7 @@
                   </div>
                   <div class="ui form">
                       <div class="field">
-                        <sui-dropdown fluid selection
+                        <sui-dropdown fluid selection direction="upward"
                                       multiple 
                                       placeholder="Select products"
                                       :options="productOptions"
@@ -135,37 +136,37 @@
                           <th>Amount / Price</th>
                         </tr>
                       </thead>
-                      <tbody name="fade" is="transition-group" mode="out-in">
-                        <tr v-for="product in productOptions"
-                            v-if="selectedProducts.includes(product.id)" 
-                            :key="product.id">
-                          <td v-if="selectedProducts.includes(product.id)">
-                            <div class="ui small header">
-                            <img :src="product.cover">
-                              <div class="content">
-                                {{ product.name }}
-                                <div class="ui tiny black label">
-                                  {{ product.type.name }}
-                                </div>
-                                <div class="sub header">
-                                  {{ product.description }}
+                        <tbody name="fade" is="transition-group" mode="out-in">
+                          <tr v-for="product in productOptions"
+                              v-if="selectedProducts.some(p => p.id == product.id)" 
+                              :key="product.id">
+                            <td>
+                              <div class="ui small header">
+                              <img :src="product.cover">
+                                <div class="content">
+                                  {{ product.name }}
+                                  <div class="ui tiny black label">
+                                    {{ product.type.name }}
+                                  </div>
+                                  <div class="sub header">
+                                    {{ product.description }}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div class="ui right labeled input">
-                              <input type="text" 
-                                    size="1" 
-                                    v-model="product.quantity" 
-                                    placeholder="Amount">
-                              <div class="ui basic label">
-                                $ {{ product.price.toFixed(2) }} each
+                            </td>
+                            <td>
+                              <div class="ui right labeled input">
+                                <input type="text" 
+                                      size="1" 
+                                      v-model="product.quantity" 
+                                      placeholder="Amount">
+                                <div class="ui basic label">
+                                  $ {{ product.price.toFixed(2) }} each
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
+                            </td>
+                          </tr>
+                        </tbody>
                       </table>
                     </div>
                   </transition>
@@ -178,44 +179,40 @@
                 <div class="four fields">
                   <div class="required field">
                     <label>Taxable</label>
-                    <sui-dropdown
-                      v-model="taxable"
-                      :options="taxableOptions"
-                      placeholder="Taxable"
-                      selection />
+                    <sui-dropdown v-model="taxable" direction="upward"
+                                  :options="taxableOptions"
+                                  placeholder="Taxable"
+                                  selection />
                   </div>
                 </div>
                 <div class="four fields">
                   <div class="field">
                     <label>Payment Method</label>
-                    <sui-dropdown
-                      fluid
-                      v-model="paymentMethod"
-                      :options="paymentOptions"
-                      placeholder="Payment Method"
-                      selection />
+                    <sui-dropdown fluid direction="upward"
+                                  v-model="paymentMethod"
+                                  :options="paymentOptions"
+                                  placeholder="Payment Method"
+                                  selection />
                   </div>
                   <div class="field">
                     <label>Tendered</label>
                     <div class="ui labeled input">
                       <div class="ui basic label">$</div>
-                      <input type="text" placeholder="Tendered">
+                      <input type="text" placeholder="Tendered" 
+                        v-model="tendered">
                     </div>
                   </div>
-                  <div class="field">
+                  <sui-form-field :error="parseFloat(change_due) < 0">
                     <label>Change Due</label>
                     <div class="ui labeled input">
                       <div class="ui basic label">$</div>
-                      <input type="text" placeholder="Change Due">
+                      <input placeholder="Change Due" v-model="change_due">
                     </div>
-                  </div>
-                  <div class="field">
+                  </sui-form-field>
+                  <sui-form-field :error="(paymentMethod != 1) && reference.length == 0">
                     <label>Reference</label>
-                    <div class="ui labeled input">
-                      <div class="ui basic label">$</div>
-                      <input type="text" placeholder="Reference">
-                    </div>
-                  </div>
+                    <input type="text" placeholder="Reference" v-model="reference">
+                  </sui-form-field>
                 </div>
                 <div class="ui small horizontal divider header">
                   <i class="money icon"></i>
@@ -282,49 +279,51 @@
             <div class="ui inverted segment" style="border-radius: 0 !important">
               <div class="ui container">
                 <div class="ui inverted form">
-                <div class="five fields">
-                  <!--- Subtotal --->
-                  <div class="field">
-                    <label>Subtotal</label>
-                    <div class="ui inverted transparent left icon input">
-                      <i class="dollar icon"></i>
-                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                  <div class="five fields">
+                    <!--- Subtotal --->
+                    <div class="field">
+                      <label>Subtotal</label>
+                      <div class="ui inverted transparent left icon input">
+                        <i class="dollar icon"></i>
+                        <input style="color:white; font-weight:bold" type="text" v-model="subtotal">
+                      </div>
                     </div>
-                  </div>
-                  <!--- Tax --->
-                  <div class="field">
-                    <label>Tax (8.25%)</label>
-                    <div class="ui inverted transparent left icon input">
-                      <i class="dollar icon"></i>
-                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    <!--- Tax --->
+                    <div class="field">
+                      <label>Tax ({{ settings.tax * 100 }}%)</label>
+                      <div class="ui inverted transparent left icon input">
+                        <i class="dollar icon"></i>
+                        <input style="color:white; font-weight:bold" type="text" v-model="tax">
+                      </div>
                     </div>
-                  </div>
-                  <!--- Total --->
-                  <div class="field">
-                    <label>Total</label>
-                    <div class="ui inverted transparent left icon input">
-                      <i class="dollar icon"></i>
-                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    <!--- Total --->
+                    <div class="field">
+                      <label>Total</label>
+                      <div class="ui inverted transparent left icon input">
+                        <i class="dollar icon"></i>
+                        <input style="color:white; font-weight:bold" 
+                              type="text" readonly
+                              v-model="total">
+                      </div>
                     </div>
-                  </div>
-                  <!--- Paid --->
-                  <div class="field">
-                    <label>Paid</label>
-                    <div class="ui inverted transparent left icon input">
-                      <i class="dollar icon"></i>
-                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    <!--- Paid --->
+                    <div class="field">
+                      <label>Paid</label>
+                      <div class="ui inverted transparent left icon input">
+                        <i class="dollar icon"></i>
+                        <input style="color:white; font-weight:bold" type="text" v-model="paid">
+                      </div>
                     </div>
-                  </div>
-                  <!-- Balance -->
-                  <div class="field">
-                    <label>Balance</label>
-                    <div class="ui inverted transparent left icon input">
-                      <i class="dollar icon"></i>
-                      <input style="color:white; font-weight:bold" type="text" value="0.00">
+                    <!-- Balance -->
+                    <div class="field">
+                      <label>Balance</label>
+                      <div class="ui inverted transparent left icon input">
+                        <i class="dollar icon"></i>
+                        <input style="color:white; font-weight:bold" type="text" v-model="balance">
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
               </div>
             </div>
           </div>
@@ -336,7 +335,7 @@
   <template id="event-form">
     <div class="ui inverted segment">
       <div class="ui inverted horizontal divider header">
-        <i class="calendar check icon"></i> Event #{{ $vnode.key }}
+        <i class="calendar check icon"></i> Event #{{ $vnode.key }} ({{ total }})
       </div>
       <div class="required field">
         <label>Date</label>
@@ -352,43 +351,60 @@
       </div>
       <div class="required field">
         <label>Event</label>
-        <sui-dropdown
-          fluid
-          :options="eventOptions"
-          v-model="event"
-          :placeholder="eventOptions.length == 0 ? 'No events found' : `${eventOptions.length} ${eventOptions.length == 1 ? 'event' : 'events'} found` "
-          selection
+        <sui-dropdown fluid selection direction="upward"
+                      :options="eventOptions"
+                      v-model="event"
+                      :placeholder="eventOptions.length == 0 ? 'No events found' : `${eventOptions.length} ${eventOptions.length == 1 ? 'event' : 'events'} found` "
         />
       </div>
-      <table class="ui selectable single line very compact table">
-        <thead>
-          <tr class="header">
-            <th>Ticket</th>
-            <th>Amount / Price</th>
-          </tr>
-         </thead>
-         <tbody>
-           <tr v-for="ticket in ticketOptions" :key="ticket.id">
-             <td>
-               <div class="ui small header">
-                 <i class="ticket icon"></i>
-                 <div class="content">
-                   {{ ticket.name }}
-                   <div class="sub header">{{ ticket.description }}</div>
-                 </div>
-               </div>
-             </td>
-             <td>
-               <div class="ui right labeled input">
-                 <input type="text" size="1" placeholder="Amount" v-model="ticket.quantity">
-                 <div class="ui basic label">
-                   $ {{ ticket.price.toFixed(2) }} each
-                 </div>
-               </div>
-             </td>
-           </tr>
-         </tbody>
-      </table>
+      <transition mode="out-in" name="fade">
+        <div class="required field" v-if="this.event != null">
+            <label>Tickets</label>
+            <sui-dropdown fluid selection direction="upward"
+                          multiple 
+                          placeholder="Select tickets"
+                          :options="ticketOptions"
+                          v-model="selectedTickets"
+            />
+          </div>
+      </transition>
+      <transition mode="out-in" name="fade">
+        <div id="tickets" v-if="selectedTickets.length > 0">
+          <table class="ui selectable single line very compact table">
+            <thead>
+              <tr class="header">
+                <th>Ticket</th>
+                <th>Amount / Price</th>
+              </tr>
+            </thead>
+            <tbody name="fade" is="transition-group" mode="out-in">
+              <tr v-for="ticket in ticketOptions" 
+                  :key="ticket.id" 
+                  v-if="selectedTickets.some(t => t.id == ticket.id)"
+              >
+                <td>
+                  <div class="ui small header">
+                    <i class="ticket icon"></i>
+                    <div class="content">
+                      {{ ticket.name }}
+                      <div class="sub header">{{ ticket.description }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="ui right labeled input">
+                    <input type="text" size="1" placeholder="Amount" v-model="ticket.quantity">
+                    <div class="ui basic label">
+                      $ {{ ticket.price.toFixed(2) }} each
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </transition>
+      
     </div>
   </template>
   <script src="app.js"></script>
