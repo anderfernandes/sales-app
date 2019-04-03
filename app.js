@@ -5,11 +5,122 @@ Vue.component("flatpickr", VueFlatpickr)
 const store = new Vuex.Store({
 	// alias to data in vue
 	state: {
+		/*sale: {
+			id                  : null,
+			creator_id          : null,
+			status              : "open", // comes from dropdown
+			source              : "admin", 
+			taxable             : false, // comes from dropdown
+			subtotal            : 0,
+			tax                 : 0,
+			total               : 0,
+			refund              : false,
+			customer_id         : null,
+			// organization_id  : null, // do it in server?
+			sell_to_organization: false, // from dropdown
+		},
+		// id, start, end, memo, show_id, tickets : { id, amount }
+		events  : [], // array of objects, user defined
+		// id, cashier_id, payment_method_id, total, tendered, change_due, reference, source(admin), sale_id, refunded
+		payments: [], // array of objects, user defined
+		// id, name, message, author_id, sale_id
+		memos   : [], // array of objects
+		// id
+		grades  : [], // array
+		// ticket data */
+		settings: [],
+		tickets: [], // Each item represents and event and every event containts tickets for that event
+		// id
+		products: [], // array, user defined
+		subtotal : 0,
+		taxable  : 0,
+		tax      : 0,
+	},
+	// ??
+	mutations: {
+		SET_TAXABLE(state, taxable) {
+			state.taxable = taxable
+		},
+		SET_TAX(state) {
+			if (state.taxable)
+				state.tax = state.subtotal * state.settings.tax
+			else
+				state.tax = 0
+		},
+		SET_TICKETS(state, payload) {
+			state.tickets.splice(payload.index, 1, payload.tickets)
+		},
+		SET_PRODUCTS(state, products) {
+			Vue.set(state, 'products', products)
+		},
+		SET_SETTINGS(state, settings) {
+			state.settings = settings
+		},
+		SET_SUBTOTAL(state) {
+			let productTotals = 0
+			let ticketTotals  = 0
+			
+			// Calculating product totals
+			if (state.products.length > 0)
+				productTotals = state.products.reduce((total, product) => 
+					(total + (product.amount * product.price)), 0
+				)
 
+			// Calculating ticket totals
+			if (state.tickets.length > 0)
+				state.tickets.forEach(ticketEventArray => 
+					ticketTotals = ticketEventArray.reduce((total, ticket) => total + (ticket.price * ticket.amount), 0))
+			
+			state.subtotal = productTotals + ticketTotals
+		}
+	},
+	// alias to computed properties in vue
+	getters: {
+		settings(state) {
+			return state.settings
+		},
+		taxable(state) {
+			return state.taxable
+		},
+		ticket(state, getters) {
+			return state.tickets
+		},
+		products(state, getters) {
+			return state.products
+		},
+		subtotal(state, getters) {
+			return state.subtotal
+		},
+		tax(state, getters) {
+			return state.tax
+		},
+		total(state, getters) {
+			return state.total
+		}
 	},
 	// alias to methods in vue
 	actions: {
-
+		setProducts(context, products) {
+			context.commit('SET_PRODUCTS', products)
+		},
+		calculateTotals(context) {
+			context.commit('SET_TAX')
+			context.commit('SET_SUBTOTAL')
+		},
+		setTaxable(context, taxable) {
+			context.commit('SET_TAXABLE', taxable)
+		},
+		setTax(context) {
+			context.commit('SET_TAX')
+		},
+		fetchSettings(context) {
+			axios
+				.get("http://10.51.136.173:8000/api/settings")
+				.then(response => {
+					let tax = parseFloat(response.data.tax) / 100
+					context.commit('SET_SETTINGS', { tax: tax })
+				})
+		},
 	},
 })
 
@@ -53,35 +164,49 @@ const EventForm = Vue.component("event-form", {
 				})
 				.catch(error => alert("Unable to query available events."))
 		},
+		// Fetch Tickets
 		fetchTickets() {
 			axios
 			.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.type}`)
 			.then(response => {
 				this.ticketOptions = response.data.data.map(ticket => ({
-					key            : ticket.id,
-					text           : `${ticket.name}`,
-					value          : ticket.id,
+					key              : ticket.id,
+					text             : `${ticket.name}`,
+					value            : { 
+						id             : ticket.id, 
+						type           : { id: ticket.id },
+						amount         : 0, 
+						price          : ticket.price,
+						event          : { id: this.event },
+						icon					 : "ticket", 
+						name           : ticket.name,
+						description    : ticket.description,
+					},
 					icon					 : "ticket", 
 					id             : ticket.id,
 					name           : ticket.name,
 					description    : ticket.description,
 					price					 : ticket.price,
 					active         : ticket.active,
-					in_cashier     : ticket.in_cashier,
-					public				 : ticket.public,
-					quantity       : 0,
+					amount         : 0,
 					type_id        : ticket.id,
 					event_id       : this.event,
-					//customer_id    : this.customer.id,
-					cashier_id     : this.cashier.id,
-					//organization_id: this.customer.organization.id,
 				}))
 				
 			})
 			.catch(error => console.log(error.message))
 		},
+		// Update Tickets in Store
+		updateTickets() {
+			let data = {
+				index: this.$vnode.key - 1,
+				tickets: this.selectedTickets
+			}
+			this.$store.commit('SET_TICKETS', data)
+		}
 	},
 	computed: {
+		// Formats Date
 		formattedDate() {
 			let date = new Date(this.date)
 			let day = date.toLocaleDateString("en-us", { weekday: "long" })
@@ -89,61 +214,64 @@ const EventForm = Vue.component("event-form", {
 			let formattedDate = `${day}, ${month} ${date.getDate()}, ${date.getFullYear()}`
 			return formattedDate
 		},
-		/*total() {
+		// Gets total of tickets for this sale
+		total() {
 			return this.ticketOptions
-							.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0)
-		}*/
+							.reduce((total, ticket) => total + (ticket.price * ticket.amount), 0)
+		}
 	},
 	created() {
-		this.fetchTickets()
 		this.fetchEvents()
+		this.fetchTickets()
 	},
 	updated() {
-		
+		this.$store.dispatch('calculateTotals')
 	}
 })
+
+// Form Data
+let data = {
+	// Sale Data
+	saleStatus: "open",
+	sellTo        : null,
+	customer      : null,
+	grades        : null,
+	tendered      : 0,
+	paymentMethod : 1,
+	numberOfEvents: 1,
+	reference     : "",
+	tickets       : [],
+	// Component Data
+	sellToOptions   : [
+		{ key: "organization", text: "Organization", value: 1 },
+		{ key: "customer", text: "Customer", value: 0 },
+	],
+	customerOptions : [],
+	saleStatuses    : [
+		{ key: "open"     ,  text: "Open"     , value: "open"     , icon: "unlock"},
+		{ key: "confirmed",  text: "Confirmed", value: "confirmed", icon: "thumbs up"},
+		{ key: "complete" ,  text: "Completed", value: "complete" , icon: "check"},
+		{ key: "tentative",  text: "Tentative", value: "tentative", icon: "help"},
+		{ key: "no show"  ,  text: "No Show"  , value: "no show"  , icon: "thumbs down"},
+	],
+	gradeOptions    : [],
+	productOptions  : [],
+	taxableOptions  : [
+		{ key: "No",  text: "No",  value: 0 },
+		{ key: "Yes", text: "Yes", value: 1 },
+	],
+	paymentOptions  : [],
+	selectedProducts: [],
+}
 
 // App
 let app = new Vue({
 	el: "#sales-form",
-  data() {
-  	return {
-      // Sale Data
-      saleStatus: "open",
-      sellTo: null,
-      customer: null,
-      grades: null,
-			taxable: false,
-			tendered: 0,
-			settings: { tax: 0 },
-			paymentMethod: 1,
-			numberOfEvents: 1,
-			reference: "",
-      // Component Data
-      sellToOptions: [
-      	{ key: "organization", text: "Organization", value: 1 },
-        { key: "customer", text: "Customer", value: 0 },
-      ],
-      customerOptions : [],
-      saleStatuses: [
-      	{ key: "open"     ,  text: "Open"     , value: "open"     , icon: "unlock"},
-				{ key: "confirmed",  text: "Confirmed", value: "confirmed", icon: "thumbs up"},
-				{ key: "complete" ,  text: "Completed", value: "complete" , icon: "check"},
-				{ key: "tentative",  text: "Tentative", value: "tentative", icon: "help"},
-				{ key: "no show"  ,  text: "No Show"  , value: "no show"  , icon: "thumbs down"},
-      ],
-      gradeOptions: [],
-			productOptions: [],
-			selectedProducts: [],
-      taxableOptions: [
-      	{ key: "No",  text: "No",  value: false },
-        { key: "Yes", text: "Yes", value: true },
-      ],
-      paymentOptions: [],
-    }
-  },
+	store, // inject store into all child components
+	components: { EventForm },
+  data: data,
   created() {
-		this.fetchSettings()
+		this.$store.dispatch('fetchSettings')
   	this.fetchCustomers()
 		this.fetchGrades()
 		this.fetchProducts()
@@ -152,24 +280,22 @@ let app = new Vue({
 		//console.log(this.$vnode.key)
 	},
 	updated() {
-		//console.log(this.total)
+		this.$store.dispatch('calculateTotals')
 	},
 	computed: {
+		products: {
+			set(newProduct) { this.$store.dispatch('setProducts', newProduct) },
+			get() { return this.$store.getters.products },
+		},
+		taxable: {
+			set(taxable) { this.$store.dispatch('setTaxable', taxable) },
+			get() { return this.$store.getters.taxable }
+		},
 		subtotal() {
-			if (this.selectedProducts.length > 0)
-				// ticket quantity's data comes from product options array
-				return this.productOptions.reduce((total, product) => 
-					(total + (product.quantity * product.price)), 0
-				).toLocaleString("en-US", {minimumFractionDigits: 2})
-			else 
-				return (0).toLocaleString("en-US", {minimumFractionDigits: 2})
+			return this.$store.getters.subtotal.toLocaleString("en-US", {minimumFractionDigits: 2})
 		},
 		tax() {
-			if (this.taxable)
-				return (parseFloat(this.subtotal) * this.settings.tax)
-					.toLocaleString("en-US", {minimumFractionDigits: 2})
-			else
-				return (0).toLocaleString("en-US", {minimumFractionDigits: 2})
+			return this.$store.getters.tax.toLocaleString("en-US", {minimumFractionDigits: 2})
 		},
 		total() {
 			if (this.taxable)
@@ -196,6 +322,9 @@ let app = new Vue({
 		change_due() {
 			return (parseFloat(this.total) - parseFloat(this.tendered))
 							.toLocaleString("en-US", {minimumFractionDigits: 2})
+		},
+		settings() {
+			return this.$store.getters.settings
 		}
 	},
   methods: {
@@ -234,12 +363,21 @@ let app = new Vue({
 				.then(response => this.productOptions = response.data.data.map(product => ({
 					key  : product.id,
 					text : `${product.name} (${product.type.name})`,
-					value: { id: product.id, price: product.price, quantity: 0 },
+					value: { 
+						id         : product.id, 
+						price      : product.price, 
+						amount     : 0, 
+						icon       : "box",
+						type       : product.type,
+						name       : product.name,
+						description: product.description,
+						cover      : product.cover,
+					},
 					icon : "box",
 					// Non-dropdown properties
 					id				 : product.id,
 					name			 : product.name,
-					quantity   : 0,
+					amount   : 0,
 					type       : product.type,
 					description: product.description,
 					price      : product.price,
@@ -261,9 +399,7 @@ let app = new Vue({
 		},
 		// Fetch Settings
 		fetchSettings() {
-			axios
-				.get("http://10.51.136.173:8000/api/settings")
-				.then(response => this.settings.tax = parseFloat(response.data.tax) / 100)
+			
 		},
 		// Add a new event form for another event
 		addEvent(event) {

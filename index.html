@@ -39,7 +39,7 @@
                   <div class="required field" style="text-align: right">
                     <label>Status</label>
                   </div>
-                  <div class="required field">
+                  <div class="required field" style="padding: 0">
                     <sui-dropdown fluid selection direction="upward"
                                   v-model="saleStatus"
                                   :options="saleStatuses"
@@ -122,12 +122,12 @@
                                     multiple 
                                     placeholder="Select products"
                                     :options="productOptions"
-                                    v-model="selectedProducts"
+                                    v-model="products"
                       />
                   </div>
                 </div>
                 <transition mode="out-in" name="fade">
-                  <div id="products" v-if="selectedProducts.length > 0">
+                  <div id="products" v-if="products.length > 0">
                     <table class="ui selectable single line very compact table">
                     <thead>
                       <tr class="header">
@@ -136,8 +136,7 @@
                       </tr>
                     </thead>
                       <tbody name="fade" is="transition-group" mode="out-in">
-                        <tr v-for="product in productOptions"
-                            v-if="selectedProducts.some(p => p.id == product.id)" 
+                        <tr v-for="product in products"
                             :key="product.id">
                           <td>
                             <div class="ui small header">
@@ -155,10 +154,12 @@
                           </td>
                           <td>
                             <div class="ui right labeled input">
-                              <input type="text" 
-                                    size="1" 
-                                    v-model="product.quantity" 
-                                    placeholder="Amount">
+                              <input type="number" 
+                                    size="1"
+                                    min="0" 
+                                    v-model.number="product.amount" 
+                                    placeholder="Amount"
+                                    @input="$store.dispatch('setProducts', products)">
                               <div class="ui basic label">
                                 $ {{ product.price.toFixed(2) }} each
                               </div>
@@ -274,7 +275,7 @@
     <!--- Totals --->
     <div class="ui grid">
       <div class="sixteen wide column" style="padding: 0 0 0 0 !important">
-        <div class="ui bottom fixed sticky" style="width:100%">
+        <div class="ui bottom fixed sticky" style="width:100%; right:0">
           <div class="ui inverted segment" style="border-radius: 0 !important">
             <div class="ui container">
               <div class="ui inverted form">
@@ -330,7 +331,7 @@
     </div>
   </div>
   <!-- Event Template -->
-  <div id="event-form">
+  <template id="event-form">
     <div class="ui inverted segment">
       <div class="ui inverted horizontal divider header">
         <i class="calendar check icon"></i> Event #{{ $vnode.key }}
@@ -376,9 +377,9 @@
               </tr>
             </thead>
             <tbody name="fade" is="transition-group" mode="out-in">
-              <tr v-for="ticket in ticketOptions" 
+              <tr v-for="ticket in selectedTickets" 
                   :key="ticket.id" 
-                  v-if="selectedTickets.some(t => t == ticket.id)"
+                  
               >
                 <td>
                   <div class="ui small header">
@@ -391,7 +392,13 @@
                 </td>
                 <td>
                   <div class="ui right labeled input">
-                    <input type="text" size="1" placeholder="Amount" v-model="ticket.quantity">
+                    <input type="number" 
+                           size="1"
+                           min="0"
+                           max="180" 
+                           placeholder="Amount" 
+                           v-model.number="ticket.amount"
+                           @input="updateTickets">
                     <div class="ui basic label">
                       $ {{ ticket.price.toFixed(2) }} each
                     </div>
@@ -404,7 +411,7 @@
       </transition>
       
     </div>
-  </div>
+  </template>
   <script src="app.js"></script>
 </body>
 </html>
