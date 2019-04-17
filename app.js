@@ -53,10 +53,14 @@ const store = new Vuex.Store({
 		hasGradeOptions   : false,
     hasProductOptions : false,
     errors            : {},
-    showModal         : false
+    showModal         : false,
+    activeTab         : 0,
 	},
 	// ??
 	mutations: {
+    SET_ACTIVE_TAB(state, index) {
+      state.activeIndex = index
+    },
     SET_DATES(state, payload) {
       Vue.set(state.dates, payload.index, payload.date)
     },
@@ -215,9 +219,13 @@ const store = new Vuex.Store({
     dates           : state => state.dates,
     eventOptions    : state => state.eventOptions,
     ticketOptions   : state => state.ticketOptions,
+    activeTab       : state => state.activeTab
 	},
 	// alias to methods in vue
 	actions: {
+    setActiveTab(context, index) {
+      context.commit("SET_ACTIVE_TAB", index)
+    },
     setDate(context, payload) {
       context.commit("SET_DATES", payload)
     },
@@ -389,7 +397,7 @@ const EventForm = Vue.component("event-form", {
 		//eventOptions: [],
 		//date: dateFns.format(new Date(), "dddd, MMMM DD, YYYY"),
 		//ticketOptions: [],
-		selectedTickets: [],
+		//selectedTickets: [],
 		flatpickrConfig: {
 			dateFormat: "l, F j, Y",
 			defaultDate: "today",
@@ -484,21 +492,20 @@ const EventForm = Vue.component("event-form", {
     // If this event has been defined in store, dispatch and get what's stored in state
     if (store.getters.dates[this.$vnode.key -1]) {
       this.fetchEvents()
-      this.fetchTickets()
     } else { // If not, set defaults
       this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
-      this.eventOptions = []
+      this.eventOptions  = []
       this.ticketOptions = []
+      this.fetchTickets()
     }
+    
 	},
 	mounted() {
-    
     //this.fetchEvents()
     //this.fetchTickets()
 	},
 	
 	updated() {
-    
 		this.$store.dispatch('calculateTotals')
 	}
 })
@@ -527,6 +534,10 @@ let app = new Vue({
     this.$store.dispatch('calculateTotals')
 	},
 	computed: {
+    activeTab: {
+      set(index) { this.$store.dispatch("setActiveTab", index) },
+      get() { return this.$store.getters.activeTab }
+    },
 		memo: {
 			set(memo) { this.$store.dispatch('setMemo', memo) },
 			get()     { return this.$store.getters.memo }

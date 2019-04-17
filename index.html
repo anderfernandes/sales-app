@@ -68,7 +68,7 @@
             <!--- Tabs --->
               <div class="ui grid" style="margin-top:5em">
                 <div class="sixteen wide column">
-                  <sui-tab>
+                  <sui-tab :active-index.sync="activeTab">
                     <!-- Sale Tab -->
                     <sui-tab-pane title="Sale" icon="dollar">
                       <sui-form>
