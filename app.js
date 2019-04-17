@@ -5,35 +5,18 @@ Vue.component("flatpickr", VueFlatpickr)
 const store = new Vuex.Store({
 	// alias to data in vue
 	state: {
-		/*sale: {
-			id                  : null,
-			creator_id          : null,
-			status              : "open", // comes from dropdown
-			source              : "admin", 
-			taxable             : false, // comes from dropdown
-			subtotal            : 0,
-			tax                 : 0,
-			total               : 0,
-			refund              : false,
-			customer_id         : null,
-			// organization_id  : null, // do it in server?
-			sell_to_organization: false, // from dropdown
-		},
-		// id, start, end, memo, show_id, tickets : { id, amount }
-		events  : [], // array of objects, user defined
-		// id, cashier_id, payment_method_id, total, tendered, change_due, reference, source(admin), sale_id, refunded
-		payments: [], // array of objects, user defined
-		// id, name, message, author_id, sale_id
-		memos   : [], // array of objects
-		// id
-		grades  : [], // array
-		// ticket data */
+		creator_id        : 3,
 		settings          : [],
 		tickets           : [], // Each item represents and event and every event containts tickets for that event
+    events            : [],
+    dates             : [], // Array for dates of each event, index + 1 is event number
+    eventOptions      : [], // Array of objects with event options, index + 1 is event number
+    ticketOptions     : [], // Array of objects with tickets options, index + 1 is event number
 		payments          : [],
 		productOptions    : [],
 		products          : [], // array, user defined
 		subtotal          : 0,
+		change_due        : 0,
 		taxableOptions    : [
 			{ key: "No",  text: "No",  value: 0 },
 			{ key: "Yes", text: "Yes", value: 1 },
@@ -43,6 +26,7 @@ const store = new Vuex.Store({
 		tendered          : 0,
 		paymentMethod     : 1, // Payment method chosen by user
 		paymentMethods    : [], // Available payment methods
+		memo              : "",
 		sellTo            : null,
 		sellToOptions     : [
 			{ key: "organization", text: "Organization", value: 1 },
@@ -67,10 +51,39 @@ const store = new Vuex.Store({
 		hasPaymentMethods : false,
 		hasCustomerOptions: false,
 		hasGradeOptions   : false,
-		hasProductOptions : false,
+    hasProductOptions : false,
+    errors            : {},
+    showModal         : false
 	},
 	// ??
 	mutations: {
+    SET_DATES(state, payload) {
+      Vue.set(state.dates, payload.index, payload.date)
+    },
+    SET_EVENT_OPTIONS(state, payload) {
+      Vue.set(state.eventOptions, payload.index, payload.eventOptions)
+    },
+    SET_TICKET_OPTIONS(state, payload) {
+      Vue.set(state.ticketOptions, payload.index, payload.ticketOptions)
+    },
+    SET_SHOW_MODAL(state) {
+      state.showModal = !state.showModal
+    },
+    SET_ERRORS(state, errors)
+    {
+      Vue.set(state, "errors", errors)
+    },
+		SET_CHANGE_DUE(state) {
+			let change_due = ((parseFloat(state.subtotal) + parseFloat(state.tax)) - parseFloat(state.tendered))
+			state.change_due = change_due >= 0 ? 0 : change_due
+		},
+		SET_MEMO(state, memo) {
+			state.memo = memo
+		},
+		SET_EVENTS(state, payload)
+		{
+			state.events.splice(payload.index, 1, payload.event_id)
+		},
 		SET_TAXABLE(state, taxable) {
 			state.taxable = taxable
 		},
@@ -102,8 +115,8 @@ const store = new Vuex.Store({
 			// Calculating ticket totals
 			if (state.tickets.length > 0)
 				state.tickets.forEach(ticketEventArray => 
-					ticketTotals = ticketEventArray.reduce((total, ticket) => total + (ticket.price * ticket.amount), 0))
-			
+					ticketTotals += ticketEventArray.reduce((total, ticket) => total + (ticket.price * ticket.amount), 0))
+
 			state.subtotal = productTotals + ticketTotals
 		},
 		SET_TENDERED(state, tendered) {
@@ -167,15 +180,17 @@ const store = new Vuex.Store({
 	},
 	// alias to computed properties in vue
 	getters: {
+		creator_id      : state => state.creator_id,
 		settings        : state => state.settings,
 		taxableOptions  : state => state.taxableOptions,
 		taxable         : state => state.taxable,
 		ticket          : state => state.tickets,
+		tickets         : state => state.tickets,
 		productOptions  : state => state.productOptions,
 		products        : state => state.products,
 		subtotal        : state => state.subtotal,
 		tax             : state => state.tax,
-		total           : state => state.total,
+		total           : state => parseFloat(state.subtotal) + parseFloat(state.tax),
 		tendered        : state => state.tendered,
 		paymentMethods  : state => state.paymentMethods,
 		paymentMethod   : state => state.paymentMethod,
@@ -191,15 +206,43 @@ const store = new Vuex.Store({
 		numberOfEvents  : state => state.numberOfEvents,
 		reference       : state => state.reference,
 		isLoading       : state => state.isLoading,
+		events          : state => state.events,
+		memo            : state => state.memo,
+    change_due      : state => state.change_due,
+    errors          : state => state.errors,
+    hasErrors       : state => Object.keys(state.errors).length > 0,
+    showModal       : state => state.showModal,
+    dates           : state => state.dates,
+    eventOptions    : state => state.eventOptions,
+    ticketOptions   : state => state.ticketOptions,
 	},
 	// alias to methods in vue
 	actions: {
+    setDate(context, payload) {
+      context.commit("SET_DATES", payload)
+    },
+    setEventOptions(context, payload) {
+      context.commit("SET_EVENT_OPTIONS", payload)
+    },
+    setTicketOptions(context, payload) {
+      context.commit("SET_TICKET_OPTIONS", payload)
+    },
+    setShowModal(context) {
+      context.commit("SET_SHOW_MODAL")
+    },
+    setErrors(context, error) {
+      context.commit("SET_ERRORS", error)
+    },
+		setMemo(context, memo) {
+			context.commit('SET_MEMO', memo)
+		},
 		setProducts(context, products) {
 			context.commit('SET_PRODUCTS', products)
 		},
 		calculateTotals(context) {
 			context.commit('SET_TAX')
 			context.commit('SET_SUBTOTAL')
+			context.commit('SET_CHANGE_DUE')
 		},
 		setTaxable(context, taxable) {
 			context.commit('SET_TAXABLE', taxable)
@@ -330,21 +373,22 @@ const store = new Vuex.Store({
 })
 
 const Modal = Vue.component("modal", {
-	template: "#modal",
-	props: ["isLoading", "hasSettings", "hasPaymentMethods", "hasCustomers", "hasGrades", "hasProducts"],
-	data: () => ({
-		open: true,
-	}),
+  template: "#modal",
+  computed: {
+    open: {
+      set() { store.dispatch('SET_SHOW_MODAL') },
+      get() { return store.getters.showModal }
+    }
+  },
 })
 
 const EventForm = Vue.component("event-form", {
 	template: "#event-form",
-	props: ["type", "customer", "cashier"],
+	props: ["type", "cashier"],
 	data: () => ({
-		eventOptions: [],
-		event: null,
-		date: "",
-		ticketOptions: [],
+		//eventOptions: [],
+		//date: dateFns.format(new Date(), "dddd, MMMM DD, YYYY"),
+		//ticketOptions: [],
 		selectedTickets: [],
 		flatpickrConfig: {
 			dateFormat: "l, F j, Y",
@@ -354,26 +398,19 @@ const EventForm = Vue.component("event-form", {
 	methods: {
 		// Fetch Events
 		fetchEvents() {
-			//let date = new Date(this.date)
-			// Formats date in format YYYY-MM-DD
-			//let start = date.toISOString().slice(0, 10)
-			// Fetch data from server
+			let date = dateFns.format(new Date(this.date), "YYYY-MM-DD")
 			axios
-				.get(`http://10.51.136.173:8000/api/events?start=${this.date}&type=${this.type}`)
+				.get(`http://10.51.136.173:8000/api/events?start=${date}&type=${this.type}`)
 				.then(response => {
-					this.eventOptions = response.data.map(event => {
-						let d    = new Date(event.start)
-						// Format date and time
-						let a    = d.getHours()   >= 12 ? "PM" : "AM"
-						let m    = d.getMinutes() < 10  ? `0${d.getMinutes()}` : d.getMinutes()
-						let h    = d.getHours()   > 12  ? d.getHours() - 12    : d.getHours()
-						let time = `${h}:${m} ${a}`
+					let eventOptions = response.data.map(event => {
+						let time = dateFns.format(new Date(event.start), "h:mm aa")
 						return {
 							key  : event.id,
-							text : `${event.show.name} at ${time}`,
+							text : `${event.show.id == 1 ? event.memo : event.show.name} at ${time}`,
 							value: event.id,
 						}
-					})
+          })
+          store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions: eventOptions})
 				})
 				.catch(error => alert("Unable to query available events."))
 		},
@@ -382,7 +419,7 @@ const EventForm = Vue.component("event-form", {
 			axios
 			.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.type}`)
 			.then(response => {
-				this.ticketOptions = response.data.data.map(ticket => ({
+				let ticketOptions = response.data.data.map(ticket => ({
 					key              : ticket.id,
 					text             : `${ticket.name}`,
 					value            : { 
@@ -405,48 +442,66 @@ const EventForm = Vue.component("event-form", {
 					type_id        : ticket.id,
 					event_id       : this.event,
 				}))
-				
+				store.dispatch("setTicketOptions", { index: this.$vnode.key - 1, ticketOptions: ticketOptions })
 			})
 			.catch(error => console.log(error.message))
 		},
 		// Update Tickets in Store
 		updateTickets() {
-			let data = {
+			this.selectedTickets.forEach(ticket => Vue.set(ticket, 'event', { id: this.event }))
+			let tickets = {
 				index: this.$vnode.key - 1,
 				tickets: this.selectedTickets
 			}
-			this.$store.commit('SET_TICKETS', data)
-		}
+			this.$store.commit('SET_TICKETS', tickets)
+		},
 	},
 	computed: {
-		// Formats Date
-		formattedDate() {
-			let date = new Date(this.date)
-			let day = date.toLocaleDateString("en-us", { weekday: "long" })
-			let month = date.toLocaleDateString("en-us", { month: "long" })
-			let formattedDate = `${day}, ${month} ${date.getDate()}, ${date.getFullYear()}`
-			return formattedDate
-		},
-		// Gets total of tickets for this sale
-		total() {
-			return this.ticketOptions
-							.reduce((total, ticket) => total + (ticket.price * ticket.amount), 0)
+    date: {
+      set(date) { store.dispatch("setDate", { index: this.$vnode.key - 1, date: date }) },
+      get() { return store.getters.dates[this.$vnode.key -1] }
+    },
+    eventOptions: {
+      set(eventOptions) { store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions }) },
+      get() { return store.getters.eventOptions[this.$vnode.key - 1] }
+    },
+    ticketOptions: {
+      set(ticketOptions) { store.dispatch("setTicketOptions", { index: this.$vnode.key, ticketOptions }) },
+      get() { return store.getters.ticketOptions[this.$vnode.key - 1] }
+    },
+		event: {
+			set(event_id) { 
+				let event = {
+					index: this.$vnode.key - 1,
+					event_id: event_id,
+				}
+				this.$store.commit('SET_EVENTS', event) 
+			},
+			get() { return this.$store.getters.events[this.$vnode.key - 1] }
 		}
+  },
+  created() {
+    // If this event has been defined in store, dispatch and get what's stored in state
+    if (store.getters.dates[this.$vnode.key -1]) {
+      this.fetchEvents()
+      this.fetchTickets()
+    } else { // If not, set defaults
+      this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
+      this.eventOptions = []
+      this.ticketOptions = []
+    }
 	},
-	created() {
-		this.fetchEvents()
-		this.fetchTickets()
+	mounted() {
+    
+    //this.fetchEvents()
+    //this.fetchTickets()
 	},
+	
 	updated() {
+    
 		this.$store.dispatch('calculateTotals')
 	}
 })
-
-// Form Data
-let data = {
-	// Sale Data
-	
-}
 
 // App
 let app = new Vue({
@@ -456,8 +511,8 @@ let app = new Vue({
   data: () => ({
 		currencySettings: {
 			minimumFractionDigits: 2,
-			maximumFractionDigits: 2,
-		}
+      maximumFractionDigits: 2,
+    }
 	}),
   created() {
 		this.$store.dispatch('fetchSettings')
@@ -469,9 +524,13 @@ let app = new Vue({
 		//console.log(this.$vnode.key)
 	},
 	updated() {
-		this.$store.dispatch('calculateTotals')
+    this.$store.dispatch('calculateTotals')
 	},
 	computed: {
+		memo: {
+			set(memo) { this.$store.dispatch('setMemo', memo) },
+			get()     { return this.$store.getters.memo }
+		},
 		payments() {
 			return this.$store.getters.payments
 		},
@@ -496,15 +555,11 @@ let app = new Vue({
 			return this.$store.getters.tax.toLocaleString("en-US", this.currencySettings)
 		},
 		total() {
-			if (this.taxable)
-				return (parseFloat(this.subtotal) + (parseFloat(this.tax)))
-					.toLocaleString("en-US", this.currencySettings)
-			else
-				return this.subtotal.toLocaleString("en-US", this.currencySettings)
+			return this.$store.getters.total.toLocaleString("en-US", this.currencySettings)
 		},
 		tendered: {
 			get() { 
-				return this.$store.getters.tendered.toLocaleString("en-US", this.currencySettings) 
+				return this.$store.getters.tendered.toLocaleString("en-US", this.currencySettings)
 			},
 			set(tendered) { 
 				this.$store.commit('SET_TENDERED', tendered) 
@@ -526,8 +581,7 @@ let app = new Vue({
 				return (0).toLocaleString("en-US", this.currencySettings)
 		},
 		change_due() {
-			return (parseFloat(this.total) - parseFloat(this.tendered))
-							.toLocaleString("en-US", this.currencySettings)
+			return this.$store.getters.change_due.toLocaleString("en-US", this.currencySettings)
 		},
 		settings() {
 			return this.$store.getters.settings
@@ -577,13 +631,69 @@ let app = new Vue({
 		},
 		isLoading() {
 			return this.$store.getters.isLoading
-		}
+    },
+    isValid() {
+      let errors = {}
+      if (parseFloat(this.change_due) < 0)
+        errors.change_due = ["Change due must be greater or equal to zero."]
+      if (parseFloat(this.tendered) < 0)
+        errors.tendered = ["Tendered must be a positive number."]
+      if ((this.paymentMethod != 1) && (this.reference.length == 0))
+        errors.reference = ["You must leave a reference if the customer not paying with cash."]
+      this.$store.dispatch("setErrors", errors)
+      return !this.$store.getters.hasErrors
+    },
 	},
   methods: {
 		// Add a new event form for another event
 		addEvent(event) {
 			event.preventDefault()
 			this.numberOfEvents++
-		},
+    },
+		submit(event) {
+			event.preventDefault()
+			let request = {
+				// Customer 
+				customer     : this.$store.getters.customer,
+				// Cashier
+				creator_id   : this.$store.getters.creator_id,
+				// Sale Data
+				saleStatus   : this.$store.getters.saleStatus,
+				taxable      : this.$store.getters.taxable,
+				subtotal     : this.$store.getters.subtotal,
+				tax          : this.$store.getters.tax,
+        total        : this.$store.getters.total,
+        tendered     : this.$store.getters.tendered,
+				sellTo       : this.$store.getters.sellTo,
+				// Payment Data
+				paymentMethod: this.$store.getters.paymentMethod,
+				change_due   : this.$store.getters.change_due,
+				reference    : this.$store.getters.reference,
+				// Ticket Data
+				tickets      : this.$store.getters.tickets,
+				// Products Data
+				products     : this.$store.getters.products,
+				// Event Data
+				events       : this.$store.getters.events,
+				// Grades Data 
+				grades       : this.$store.getters.grades,
+				// Memo
+				memo         : this.$store.getters.memo,
+			}
+      console.log(request)
+      if (this.isValid)
+      {
+        axios({
+          method: "POST",
+          data  : request,
+          headers: { "content-type": "application/json" },
+          url    : "http://10.51.136.173:8000/api/sales", 
+        })
+        //.then(response => alert(response.message))
+        .catch(error => { alert("Unable to save this sale at this time.") })
+      } else {
+        this.$store.dispatch("setShowModal")
+      }
+		}
   },
 })
