@@ -223,6 +223,9 @@ const store = new Vuex.Store({
 	},
 	// alias to methods in vue
 	actions: {
+    setTickets(context, payload) {
+      context.commit("SET_TICKETS", payload)
+    },
     setActiveTab(context, index) {
       context.commit("SET_ACTIVE_TAB", index)
     },
@@ -461,7 +464,7 @@ const EventForm = Vue.component("event-form", {
 				index: this.$vnode.key - 1,
 				tickets: this.selectedTickets
 			}
-			this.$store.commit('SET_TICKETS', tickets)
+			store.dispatch("setTickets", tickets)
 		},
 	},
 	computed: {
@@ -476,6 +479,13 @@ const EventForm = Vue.component("event-form", {
     ticketOptions: {
       set(ticketOptions) { store.dispatch("setTicketOptions", { index: this.$vnode.key, ticketOptions }) },
       get() { return store.getters.ticketOptions[this.$vnode.key - 1] }
+    },
+    selectedTickets: {
+      set(selectedTickets) {
+        selectedTickets.forEach(ticket => Vue.set(ticket, 'event', { id: this.event }))
+        store.dispatch("setTickets", { index: this.$vnode.key, tickets: selectedTickets })
+      },
+      get() { return store.getters.tickets[this.$vnode.key - 1] }
     },
 		event: {
 			set(event_id) { 
@@ -494,6 +504,7 @@ const EventForm = Vue.component("event-form", {
       this.fetchEvents()
     } else { // If not, set defaults
       this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
+      //this.selectedTickets = []
       this.eventOptions  = []
       this.ticketOptions = []
       this.fetchTickets()

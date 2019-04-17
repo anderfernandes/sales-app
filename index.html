@@ -386,7 +386,7 @@
           </div>
       </transition>
       <transition mode="out-in" name="fade">
-        <div id="tickets" v-if="selectedTickets.length > 0">
+        <div id="tickets" v-if="selectedTickets">
           <table class="ui selectable single line very compact table">
             <thead>
               <tr class="header">
@@ -416,7 +416,7 @@
                            max="180" 
                            placeholder="Amount" 
                            v-model.number="ticket.amount"
-                           @input="updateTickets">
+                           >
                     <div class="ui basic label">
                       $ {{ ticket.price.toFixed(2) }} each
                     </div>
