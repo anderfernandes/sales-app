@@ -78,8 +78,14 @@
                                         v-model="sellTo"
                                         :options="sellToOptions"
                                         placeholder="Sell To"
-                                        selection 
-                          />
+                                        :error="errors.hasOwnProperty('sellTo')"
+                                        selection></sui-dropdown>
+                          <transition mode="out-in" name="fade">
+                            <sui-label basic color="red" pointing 
+                                        v-if="errors.hasOwnProperty('sellTo')">
+                              {{ errors.sellTo[0] }}
+                            </sui-label>
+                          </transition>
                         </sui-form-field>
                         <sui-form-field required>
                           <label>Customer</label>
@@ -220,9 +226,15 @@
                               <input placeholder="Change Due" v-model.number="change_due" readonly>
                             </div>
                           </sui-form-field>
-                          <sui-form-field :error="(paymentMethod != 1) && reference.length == 0">
+                          <sui-form-field :error="errors.hasOwnProperty('reference')">
                             <label>Reference</label>
-                            <input type="text" placeholder="Reference" v-model="reference">
+                            <input type="tel" placeholder="Reference" v-model.number="reference">
+                            <transition mode="in-out" name="fade">
+                                <sui-label basic color="red" pointing 
+                                v-if="errors.hasOwnProperty('reference')">
+                                  {{ errors.reference[0] }}
+                                </sui-label>
+                            </transition>
                           </sui-form-field>
                         </div>
                         <div class="ui small horizontal divider header" v-if="payments.length > 0">
@@ -230,45 +242,52 @@
                           Payments
                         </div>
                         <table class="ui selectable single table" v-if="payments.length > 0">
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Method</th>
-                            <th>Amount Paid</th>
-                            <th>Date</th>
-                            <th>Cashier</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>
-                              <div class="ui header">1234</div>
-                            </td>
-                            <td><i class="cc visa icon"></i>Visa</td>
-                            <td>$ 5.41</td>
-                            <td>Thursday, March 7, 2019 at 10:14 PM</td>
-                            <td>
-                              <i class="user circle icon"></i>
-                              Anderson
-                            </td>
-                          </tr>
-                        </tbody>
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Method</th>
+                              <th>Amount Paid</th>
+                              <th>Date</th>
+                              <th>Cashier</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td v-for="payment in payments" :key="payment.id">
+                                <div class="ui header">
+                                  {{ payment.id }}
+                                </div>
+                              </td>
+                              <td><i class="cc visa icon"></i>
+                                {{ payment.method.name }}
+                              </td>
+                              <td>$ {{ payment.total }}</td>
+                              <td>{{ payment.created_at }}</td>
+                              <td>
+                                <i class="user circle icon"></i>
+                                {{ payment.cashier.firstname }}
+                              </td>
+                            </tr>
+                          </tbody>
                         </table>
                       </sui-form>
                     </sui-tab-pane>
                   </sui-tab>
                   <!--- Memos --->
-                  <div class="ui small horizontal divider header">
+                  <div class="ui small horizontal divider header" v-if="memos.length > 0">
                     <i class="comments outline icon"></i>
                     Memos
                   </div>
                   <div class="ui comments">
-                    <div class="comment">
-                      <div class="avatar"><i class="user circle big icon"></i></div>
+                    <div class="comment" v-for="memo in memos" :key="memo.id">
+                      <div class="avatar">
+                        <i class="user circle big icon"></i>
+                      </div>
                       <div class="content">
                         <div class="author">
-                          Anderson Fernandes
-                          <div class="metadata">Today at 5:45 PM</div>
+                          {{ memo.author.fistname }} {{ memo.author.lastname }}
+                          <div class="ui black label">{{ memo.author.role.name }}</div>
+                          <div class="metadata">{{ memo.created_at }}</div>
                         </div>
                         <div class="text">This is cool!!!</div>
                       </div>
@@ -433,15 +452,22 @@
 
   <!-- Modal Template-->
   <template id="modal">
-    <sui-modal v-model="open">
-      <sui-modal-header>Error</sui-modal-header>
+    <sui-modal v-model="open" basic>
+      <sui-header icon="info circle">Oops...</sui-header>
       <sui-modal-content>
         <sui-modal-description>
           <p>Please fix the following errors and try again.</p>
+          <ul>
+            <li v-for="(error, index) in errors" :key="index">
+              {{ error }}
+            </li>
+          </ul>
         </sui-modal-description>
       </sui-modal-content>
       <sui-modal-actions>
-        <sui-button positive @click="open = !open">Gotcha!</sui-button>
+        <sui-button color="green" inverted @click="open = !open" icon="check">
+          Gotcha!
+        </sui-button>
       </sui-modal-actions>
     </sui-modal>
   </template>

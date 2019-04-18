@@ -12,7 +12,7 @@ const store = new Vuex.Store({
     dates             : [], // Array for dates of each event, index + 1 is event number
     eventOptions      : [], // Array of objects with event options, index + 1 is event number
     ticketOptions     : [], // Array of objects with tickets options, index + 1 is event number
-		payments          : [],
+		payments          : [], // Sale payments
 		productOptions    : [],
 		products          : [], // array, user defined
 		subtotal          : 0,
@@ -26,7 +26,8 @@ const store = new Vuex.Store({
 		tendered          : 0,
 		paymentMethod     : 1, // Payment method chosen by user
 		paymentMethods    : [], // Available payment methods
-		memo              : "",
+    memo              : "",
+    memos             : [], // Sale memos, come from database
 		sellTo            : null,
 		sellToOptions     : [
 			{ key: "organization", text: "Organization", value: 1 },
@@ -211,7 +212,8 @@ const store = new Vuex.Store({
 		reference       : state => state.reference,
 		isLoading       : state => state.isLoading,
 		events          : state => state.events,
-		memo            : state => state.memo,
+    memo            : state => state.memo,
+    memos           : state => state.memos,
     change_due      : state => state.change_due,
     errors          : state => state.errors,
     hasErrors       : state => Object.keys(state.errors).length > 0,
@@ -219,7 +221,7 @@ const store = new Vuex.Store({
     dates           : state => state.dates,
     eventOptions    : state => state.eventOptions,
     ticketOptions   : state => state.ticketOptions,
-    activeTab       : state => state.activeTab
+    activeTab       : state => state.activeTab,
 	},
 	// alias to methods in vue
 	actions: {
@@ -387,9 +389,16 @@ const Modal = Vue.component("modal", {
   template: "#modal",
   computed: {
     open: {
-      set() { store.dispatch('SET_SHOW_MODAL') },
+      set() { store.dispatch("setShowModal") },
       get() { return store.getters.showModal }
-    }
+    },
+    errors() {
+      let errors = []
+      Object.values(this.$store.getters.errors).forEach(errorMessages => {
+        errorMessages.forEach(errorMessage => errors.push(errorMessage))
+      })
+      return errors
+    },
   },
 })
 
@@ -397,10 +406,6 @@ const EventForm = Vue.component("event-form", {
 	template: "#event-form",
 	props: ["type", "cashier"],
 	data: () => ({
-		//eventOptions: [],
-		//date: dateFns.format(new Date(), "dddd, MMMM DD, YYYY"),
-		//ticketOptions: [],
-		//selectedTickets: [],
 		flatpickrConfig: {
 			dateFormat: "l, F j, Y",
 			defaultDate: "today",
@@ -504,7 +509,6 @@ const EventForm = Vue.component("event-form", {
       this.fetchEvents()
     } else { // If not, set defaults
       this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
-      //this.selectedTickets = []
       this.eventOptions  = []
       this.ticketOptions = []
       this.fetchTickets()
@@ -545,6 +549,12 @@ let app = new Vue({
     this.$store.dispatch('calculateTotals')
 	},
 	computed: {
+    payments() {
+      return this.$store.getters.payments
+    },
+    memos() {
+      return this.$store.getters.memos
+    },
     activeTab: {
       set(index) { this.$store.dispatch("setActiveTab", index) },
       get() { return this.$store.getters.activeTab }
@@ -654,14 +664,34 @@ let app = new Vue({
 		isLoading() {
 			return this.$store.getters.isLoading
     },
+    errors() {
+      return this.$store.getters.errors
+    },
     isValid() {
       let errors = {}
+      // Sell To Error Checking
+      if (!this.sellTo)
+        errors.sellTo = ["Select if this sale is for the customer you selected or the organization they work for."]
+      else if (this.sellTo.length < 2)
+        errors.sellTo = ["Reference must have at least 2 numbers"]
+      else 
+        delete errors.sellTo
+      // Change Due error Checking
       if (parseFloat(this.change_due) < 0)
         errors.change_due = ["Change due must be greater or equal to zero."]
+      else 
+        delete errors.change_due
+      // Tendered error checking
       if (parseFloat(this.tendered) < 0)
         errors.tendered = ["Tendered must be a positive number."]
+      else 
+        delete errors.tendered
+      // Reference error checking
       if ((this.paymentMethod != 1) && (this.reference.length == 0))
         errors.reference = ["You must leave a reference if the customer not paying with cash."]
+      else 
+        delete errors.reference
+        
       this.$store.dispatch("setErrors", errors)
       return !this.$store.getters.hasErrors
     },
