@@ -1,7 +1,49 @@
+let dateFormat = { long: "dddd, MMMM D, YYYY [at] hh:mm a" }
+
 Vue.config.devtools = true // DISABLE THIS IN PRODUCTION
 Vue.use(SemanticUIVue)
 Vue.component("flatpickr", VueFlatpickr)
 
+Vue.mixin({
+  methods: {
+    format(date, format) { 
+      return dateFns.format(date, format) 
+    },
+    distanceInWords(beginning, end) { 
+      return dateFns.distanceInWords(beginning, end, { addSuffix: true }) 
+    },
+    getSaleColor(status) {
+      let color = null
+      switch(status)
+      {
+        case 'complete' : color = { backgroundColor: "#21ba45"}; break;
+        case 'confirmed': color = { backgroundColor: "#ffffff", color: "#21ba45"}; break;
+        case 'open'     : color = { backgroundColor: "#6435c9"}; break;
+        case 'canceled' : color = { backgroundColor: "#cf3534"}; break;
+        case 'tentative': color = { backgroundColor: "#fbbd08"}; break;
+        case 'no show'  : color = { backgroundColor: "#f2851c"}; break;
+      }
+      return color
+    },
+    getSaleLabelColor(status) {
+      let className = null
+      switch(status)
+      {
+        case 'complete' : className = "ui green label"; break;
+        case 'confirmed': className = "ui basic green label"; break;
+        case 'open'     : className = "ui violet label"; break;
+        case 'canceled' : className = "ui red label"; break;
+        case 'tentative': className = "ui yellow label"; break;
+        case 'no show'  : className = "ui organge label"; break;
+      }
+      return className
+    },
+  }
+})
+
+Vue.prototype.$dateFormat = dateFormat
+
+// Vuex global store
 const store = new Vuex.Store({
 	// alias to data in vue
 	state: {
@@ -56,9 +98,17 @@ const store = new Vuex.Store({
     errors            : {},
     showModal         : false,
     activeTab         : 0,
+    event_types       : [],
+    sales             : [],
 	},
 	// ??
 	mutations: {
+    SET_SALES(state, sales) {
+      Vue.set(state, "sales", sales)
+    },
+    SET_EVENT_TYPES(state, event_types) {
+      Vue.set(state, "event_types", event_types)
+    },
     SET_ACTIVE_TAB(state, index) {
       state.activeIndex = index
     },
@@ -185,6 +235,8 @@ const store = new Vuex.Store({
 	},
 	// alias to computed properties in vue
 	getters: {
+    sales           : state => state.sales,
+    event_types     : state => state.event_types,
 		creator_id      : state => state.creator_id,
 		settings        : state => state.settings,
 		taxableOptions  : state => state.taxableOptions,
@@ -225,6 +277,22 @@ const store = new Vuex.Store({
 	},
 	// alias to methods in vue
 	actions: {
+    fetchSales(context) {
+      let errors = {}
+      errors.fetchSales = ["Unable to fetch sales"]
+      axios
+        .get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
+        .then(response => context.commit("SET_SALES", response.data))
+        .catch(error => context.commit("SET_ERRORS", errors))
+    },
+    fetchEventTypes(context) {
+      let errors = {}
+      errors.fetchEventTypes = ["Unable to fetch event types"]
+      axios
+        .get("http://10.51.136.173:8000/api/event-types")
+        .then(response => context.commit("SET_EVENT_TYPES", response.data))
+        .catch(error => context.commit("SET_ERRORS", errors))
+    },
     setTickets(context, payload) {
       context.commit("SET_TICKETS", payload)
     },
@@ -243,8 +311,8 @@ const store = new Vuex.Store({
     setShowModal(context) {
       context.commit("SET_SHOW_MODAL")
     },
-    setErrors(context, error) {
-      context.commit("SET_ERRORS", error)
+    setErrors(context, errors) {
+      context.commit("SET_ERRORS", errors)
     },
 		setMemo(context, memo) {
 			context.commit('SET_MEMO', memo)
@@ -385,6 +453,7 @@ const store = new Vuex.Store({
 	},
 })
 
+// Modal
 const Modal = Vue.component("modal", {
   template: "#modal",
   computed: {
@@ -402,6 +471,7 @@ const Modal = Vue.component("modal", {
   },
 })
 
+// Event Form
 const EventForm = Vue.component("event-form", {
 	template: "#event-form",
 	props: ["type", "cashier"],
@@ -525,11 +595,11 @@ const EventForm = Vue.component("event-form", {
 	}
 })
 
-// App
-let app = new Vue({
-	el: "#sales-form",
-	store, // inject store into all child components
-	components: { EventForm },
+// Sales Form
+const SalesForm = Vue.component("sales-form", {
+  props: ["type"],
+  template: "#sales-form",
+  components: { EventForm },
   data: () => ({
 		currencySettings: {
 			minimumFractionDigits: 2,
@@ -749,3 +819,51 @@ let app = new Vue({
 		}
   },
 })
+
+// Index Page
+const Index = Vue.component("index", { 
+  template: "#index",
+  props: ["type"],
+  data: () => ({
+    open: false,
+  }),
+  computed: {
+    event_types() { return this.$store.getters.event_types },
+    sales() { return this.$store.getters.sales },
+  },
+  methods: {
+    toggle() { this.open = !this.open },
+  },
+  created() { 
+    this.$store.dispatch("fetchEventTypes") 
+    this.$store.dispatch("fetchSales")
+  }
+})
+
+// Create Page
+const Create = Vue.component("create", { 
+  template: "#create",
+})
+
+// Show Page
+const Show = Vue.component("show", { template: "#show" })
+
+// Update Page
+const Update = Vue.component("update", { template: "#update" })
+
+// Defining routes
+const routes = [
+  { path: "/",       name:"index",  component: Index  },
+  { path: "/create", name:"create", component: Create, props: { type: null }},
+  { path: "/show",   name:"show",   component: Show,   props: { sale: null }},
+  { path: "/update", name:"update", component: Update, props: { sale: null }},
+]
+
+// Defining Router
+const router = new VueRouter({ routes })
+
+// App
+const app = new Vue({
+  store, // inject store into all child components
+  router,
+}).$mount("#app")

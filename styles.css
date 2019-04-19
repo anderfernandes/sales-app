@@ -11,9 +11,25 @@ textarea {
 }
 
 .fade-enter-active, .fade-leave-active {
-  transition: opacity 1s;
+  transition: opacity 0.5s;
 }
 
 .fade-enter, .fade-leave-to {
   opacity: 0;
+}
+
+.card#event-type {
+  background-color: transparent !important;
+}
+
+.card#event-type > .content > .description {
+  color: white !important;
+}
+
+.card#event-type:hover {
+  background-color: white !important;
+}
+
+.card#event-type:hover > .content > .description {
+  color: black !important;
 }
