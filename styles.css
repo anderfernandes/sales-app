@@ -41,10 +41,19 @@ textarea {
   background-color: transparent
 }
 
-.ui.items > .item {
+.ui.sale.segment {
   cursor: pointer !important;
 }
 
 .meta > .ui.label > .detail {
   margin-top: 6px !important;
+}
+
+.list-enter-active, .list-leave-active {
+  transition: all 1s;
+}
+
+.list-enter, .list-leave-to {
+  opacity: 0;
+  transition: translateY(30px);
 }

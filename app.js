@@ -832,26 +832,6 @@ const SalesForm = Vue.component("sales-form", {
   },
 })
 
-// Index Page
-const Index = Vue.component("index", { 
-  template: "#index",
-  props: ["type"],
-  data: () => ({
-    open: false,
-  }),
-  computed: {
-    event_types() { return this.$store.getters.event_types },
-    sales() { return this.$store.getters.sales },
-  },
-  methods: {
-    toggle() { this.open = !this.open },
-  },
-  created() { 
-    this.$store.dispatch("fetchEventTypes") 
-    this.$store.dispatch("fetchSales")
-  }
-})
-
 // Sale Box
 const SaleBox = Vue.component("sale-box", {
   template: "#sale-box",
@@ -869,23 +849,85 @@ const SaleBox = Vue.component("sale-box", {
   }
 })
 
+// Index Page
+const Index = Vue.component("index", { 
+  template: "#index",
+  props: ["type"],
+  components: { SaleBox },
+  data: () => ({
+    open     : false,
+    isLoading: true,
+    sales    : [],
+  }),
+  computed: {
+    event_types() { return this.$store.getters.event_types },
+  },
+  methods: {
+    toggle() { this.open = !this.open },
+    fetchSales() {
+      let errors = {}
+      errors.fetchSales = ["Unable to fetch sales"]
+      axios
+        .get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
+        .then(response => this.sales = response.data.data)
+        .catch(error => store.dispatch("setErrors", errors))
+        .finally(() => this.isLoading = !this.isLoading)
+    },
+  },
+  created() { 
+    this.$store.dispatch("fetchEventTypes")
+    this.fetchSales() 
+  }
+})
+
 // Create Page
 const Create = Vue.component("create", { 
   template: "#create",
 })
 
 // Show Page
-const Show = Vue.component("show", { template: "#show", components: { SaleBox } })
+const Show = Vue.component("show", { 
+  template: "#show",
+  data: () => ({
+    sale: {},
+    isLoading: true,
+  }),
+  created() {
+    this.fetchSale()
+  },
+  computed: {
+    tax() {
+      return this.sale.tax.toLocaleString("en-US", store.getters.currencySettings)
+    },
+    paid() {
+      let paid = this.sale.payments.reduce((total, current) => total + parseFloat(current.paid), 0)
+      return paid.toLocaleString("en-US", store.getters.currencySettings)
+    },
+    balance() {
+      let balance = parseFloat(this.sale.total) - parseFloat(this.paid)
+      return balance.toLocaleString("en-US", store.getters.currencySettings)
+    }
+  },
+  methods : {
+    fetchSale() {
+      axios
+        .get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
+        .then(response => this.sale = response.data)
+        .catch(error => alert(error.response.message))
+        .finally(() => this.isLoading = !this.isLoading)
+    },
+  }
+})
 
 // Update Page
-const Update = Vue.component("update", { template: "#update" })
+const Edit = Vue.component("update", { template: "#edit" })
 
 // Defining routes
 const routes = [
-  { path: "/",       name:"index",  component: Index  },
-  { path: "/create", name:"create", component: Create, props: { type: null }},
-  { path: "/show",   name:"show",   component: Show,   props: { sale: null }},
-  { path: "/update", name:"update", component: Update, props: { sale: null }},
+  { path: "/",          name:"index",  component: Index  },
+  { path: "/create",    name:"create", component: Create },
+  { path: "/:id",       name:"show",   component: Show,  },
+  { path: "/:id/edit",  name:"update", component: Edit,  },
 ]
 
 // Defining Router
