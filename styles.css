@@ -33,3 +33,18 @@ textarea {
 .card#event-type:hover > .content > .description {
   color: black !important;
 }
+
+.header > .ui.label {
+  border-color: white !important;
+  border-width: 1px !important;
+  color: white;
+  background-color: transparent
+}
+
+.ui.items > .item {
+  cursor: pointer !important;
+}
+
+.meta > .ui.label > .detail {
+  margin-top: 6px !important;
+}

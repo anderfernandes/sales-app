@@ -1,4 +1,4 @@
-let dateFormat = { long: "dddd, MMMM D, YYYY [at] hh:mm a" }
+let dateFormat = { long: "dddd, MMMM D, YYYY [at] h:mm a" }
 
 Vue.config.devtools = true // DISABLE THIS IN PRODUCTION
 Vue.use(SemanticUIVue)
@@ -29,12 +29,25 @@ Vue.mixin({
       let className = null
       switch(status)
       {
-        case 'complete' : className = "ui green label"; break;
-        case 'confirmed': className = "ui basic green label"; break;
-        case 'open'     : className = "ui violet label"; break;
-        case 'canceled' : className = "ui red label"; break;
-        case 'tentative': className = "ui yellow label"; break;
-        case 'no show'  : className = "ui organge label"; break;
+        case 'complete' : className = "ui left pointing green label"; break;
+        case 'confirmed': className = "ui left pointing basic green label"; break;
+        case 'open'     : className = "ui left pointing violet label"; break;
+        case 'canceled' : className = "ui left pointing red label"; break;
+        case 'tentative': className = "ui left pointing yellow label"; break;
+        case 'no show'  : className = "ui left pointing organge label"; break;
+      }
+      return className
+    },
+    getSaleIcon(status) {
+      let className = null
+      switch(status)
+      {
+        case 'complete' : className = "checkmark icon"          ; break;
+        case 'confirmed': className = "thumbs up icon"          ; break;
+        case 'open'     : className = "unlock icon"             ; break;
+        case 'canceled' : className = "remove icon"             ; break;
+        case 'tentative': className = "help icon"               ; break;
+        case 'no show'  : className = "thumbs outline down icon"; break;
       }
       return className
     },
@@ -100,6 +113,10 @@ const store = new Vuex.Store({
     activeTab         : 0,
     event_types       : [],
     sales             : [],
+    currencySettings  : {
+			minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
 	},
 	// ??
 	mutations: {
@@ -274,6 +291,7 @@ const store = new Vuex.Store({
     eventOptions    : state => state.eventOptions,
     ticketOptions   : state => state.ticketOptions,
     activeTab       : state => state.activeTab,
+    currencySettings: state => state.currencySettings,
 	},
 	// alias to methods in vue
 	actions: {
@@ -282,7 +300,7 @@ const store = new Vuex.Store({
       errors.fetchSales = ["Unable to fetch sales"]
       axios
         .get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
-        .then(response => context.commit("SET_SALES", response.data))
+        .then(response => context.commit("SET_SALES", response.data.data))
         .catch(error => context.commit("SET_ERRORS", errors))
     },
     fetchEventTypes(context) {
@@ -600,12 +618,6 @@ const SalesForm = Vue.component("sales-form", {
   props: ["type"],
   template: "#sales-form",
   components: { EventForm },
-  data: () => ({
-		currencySettings: {
-			minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }
-	}),
   created() {
 		this.$store.dispatch('fetchSettings')
 		this.$store.dispatch('fetchCustomers')
@@ -651,17 +663,17 @@ const SalesForm = Vue.component("sales-form", {
 			get() { return this.$store.getters.taxable }
 		},
 		subtotal() {
-			return this.$store.getters.subtotal.toLocaleString("en-US", this.currencySettings)
+			return this.$store.getters.subtotal.toLocaleString("en-US", store.getters.currencySettings)
 		},
 		tax() {
-			return this.$store.getters.tax.toLocaleString("en-US", this.currencySettings)
+			return this.$store.getters.tax.toLocaleString("en-US", store.getters.currencySettings)
 		},
 		total() {
-			return this.$store.getters.total.toLocaleString("en-US", this.currencySettings)
+			return this.$store.getters.total.toLocaleString("en-US", store.getters.currencySettings)
 		},
 		tendered: {
 			get() { 
-				return this.$store.getters.tendered.toLocaleString("en-US", this.currencySettings)
+				return this.$store.getters.tendered.toLocaleString("en-US", store.getters.currencySettings)
 			},
 			set(tendered) { 
 				this.$store.commit('SET_TENDERED', tendered) 
@@ -672,18 +684,18 @@ const SalesForm = Vue.component("sales-form", {
 			/*if (parseFloat(this.tendered) > 0)
 				return parseFloat(this.tendered).toLocaleString("en-US", {maximumFractionDigits: 2})
 			else*/
-				return (0).toLocaleString("en-US", this.currencySettings)
+				return (0).toLocaleString("en-US", store.getters.currencySettings)
 		},
 		balance() {
 			// Check if sale data exists and payments exist, if not, return 0
 			let result = parseFloat(this.total) - parseFloat(this.tendered)
 			if (result >= 0)
-				return result.toLocaleString("en-US", this.currencySettings)
+				return result.toLocaleString("en-US", store.getters.currencySettings)
 			else 
-				return (0).toLocaleString("en-US", this.currencySettings)
+				return (0).toLocaleString("en-US", store.getters.currencySettings)
 		},
 		change_due() {
-			return this.$store.getters.change_due.toLocaleString("en-US", this.currencySettings)
+			return this.$store.getters.change_due.toLocaleString("en-US", store.getters.currencySettings)
 		},
 		settings() {
 			return this.$store.getters.settings
@@ -840,13 +852,30 @@ const Index = Vue.component("index", {
   }
 })
 
+// Sale Box
+const SaleBox = Vue.component("sale-box", {
+  template: "#sale-box",
+  props   : ["sale"],
+  computed: {
+    paid() {
+      let paid = this.sale.payments.reduce((total, current) => total + parseFloat(current.tendered), 0)
+      let change_due = this.sale.payments.reduce((total, current) => total + parseFloat(current.change_due), 0)
+      return (paid - change_due).toLocaleString("en-US", store.getters.currencySettings)
+    },
+    balance() {
+      let balance = parseFloat(this.sale.total) - parseFloat(this.paid)
+      return balance.toLocaleString("en-US", store.getters.currencySettings)
+    }
+  }
+})
+
 // Create Page
 const Create = Vue.component("create", { 
   template: "#create",
 })
 
 // Show Page
-const Show = Vue.component("show", { template: "#show" })
+const Show = Vue.component("show", { template: "#show", components: { SaleBox } })
 
 // Update Page
 const Update = Vue.component("update", { template: "#update" })

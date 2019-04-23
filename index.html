@@ -504,7 +504,7 @@
             </sui-dropdown>
           </sui-form-field>
           <sui-form-field>
-              <sui-dropdown placeholder="All Cashier" fluid selection>
+              <sui-dropdown placeholder="All Cashiers" fluid selection>
               </sui-dropdown>
             </sui-form-field>
         </sui-form-fields>
@@ -515,29 +515,7 @@
 
       <div class="ui segment" v-for="sale in sales" :key="sale.id" :style="getSaleColor(sale.status)">
         <div class="ui items">
-          <div class="item">
-            <div class="content">
-              <div class="header" style="color: white">
-                Sale #{{ sale.id }} <div :class="getSaleLabelColor(sale.status)">{{ sale.status }}</div>
-                <div class="ui top right attached basic label">
-                  <i class="user circle icon"></i>{{ sale.customer.name }}
-                  <div class="detail" v-if="sale.organization.id != 1">
-                    <i class="university icon"></i>{{ sale.organization.name }}
-                  </div>
-                </div>
-              </div>
-              <div class="meta" style="color: white">
-                <i class="user circle icon"></i> 
-                {{ sale.creator.name }} |
-                <i class="pencil icon"></i>      
-                {{ format(new Date(sale.created_at), $dateFormat.long) }}
-                ({{ distanceInWords(new Date(), new Date(sale.created_at)) }})
-                <div v-if="sale.updated_at != null">
-                    | <i class="edit icon"></i> {{ sale.updated_at }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <sale-box :sale="sale"></sale-box>
         </div>
       </div>
 
@@ -579,6 +557,59 @@
 
   <template id="update">
     <h1>Welcome to update!</h1>
+  </template>
+
+  <template id="sale-box">
+    <div class="item">
+      <div class="content">
+        <div class="header" style="color: white">
+          Sale #{{ sale.id }} 
+          <div :class="getSaleLabelColor(sale.status)">
+            <i :class="getSaleIcon(sale.status)"></i>
+            {{ sale.status }}
+          </div>
+          <div class="ui label">
+              $ {{ sale.total }} <div class="detail">total</div>
+          </div>
+          <div class="ui label">
+            $ {{ paid }} 
+            <div class="detail">paid</div>
+          </div>
+          <div class="ui label">
+              $ {{ balance }} <div class="detail">balance</div>
+          </div>
+          <div class="ui top right attached basic label">
+            <i class="user circle icon"></i>
+            {{ sale.customer.firstname }} {{ sale.customer.lastname }}
+            <div class="detail" v-if="sale.organization.id != 1">
+              <i class="university icon"></i>{{ sale.organization.name }}
+            </div>
+          </div>
+        </div>
+        <div class="meta" style="color: white">
+          <i class="user circle icon"></i> 
+          {{ sale.creator.firstname }} |
+          <i class="pencil icon"></i>      
+          {{ format(new Date(sale.created_at), $dateFormat.long) }}
+          ({{ distanceInWords(new Date(), new Date(sale.created_at)) }})
+          <span v-if="sale.updated_at != sale.created_at">
+            | <i class="edit icon"></i> 
+            {{ format(new Date(sale.updated_at), $dateFormat.long) }}
+            ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
+          </span>
+        </div>
+        <div class="meta">
+          <div class="ui basic label" v-for="event in sale.events">
+            <img :src="event.show.cover" alt="">
+            {{ event.show.name }}
+            <div class="detail">
+              {{ format(new Date(event.start), $dateFormat.long) }}
+              ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </template>
 
   <script src="app.js"></script>
