@@ -57,3 +57,7 @@ textarea {
   opacity: 0;
   transition: translateY(30px);
 }
+
+.ui.sale.segment .header, .ui.sale.segment .meta {
+  color: white !important;
+}

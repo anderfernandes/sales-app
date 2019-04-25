@@ -145,7 +145,7 @@
                         </div>
                         <div class="ui form">
                             <div class="field">
-                              <sui-dropdown fluid selection multiple
+                              <sui-dropdown fluid selection multiple search
                                             placeholder="Select products"
                                             :options="productOptions"
                                             v-model="products"
@@ -933,13 +933,26 @@
             ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
           </span>
         </div>
-        <div class="meta">
-          <div class="ui basic label" v-for="event in sale.events">
-            <img :src="event.show.cover" alt="">
-            {{ event.show.name }}
-            <div class="detail">
-              {{ format(new Date(event.start), $dateFormat.long) }}
-              ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
+        <div class="meta" v-if="sale.events.length > 0">
+          <div class="ui grid">
+            <div class="column" v-for="event in sale.events">
+              <div class="ui items">
+                <div class="item">
+                  <div class="ui tiny image">
+                    <img :src="event.show.cover" :alt="event.show.name">
+                  </div>
+                  <div class="content">
+                    <div class="meta">
+                      <div class="ui label">{{ event.show.type }}</div>
+                    </div>
+                    <div class="header">{{ event.show.name }}</div>
+                    <div class="meta">
+                        {{ format(new Date(event.start), $dateFormat.long) }}
+                        ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

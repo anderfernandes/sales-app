@@ -360,7 +360,7 @@ const store = new Vuex.Store({
     },
 		setProducts(context, products) {
       context.commit("SET_PRODUCTS", products)
-      context.commit("SET_IS_LOADING", false)
+      //context.commit("SET_IS_LOADING")
 		},
 		calculateTotals(context) {
 			context.commit('SET_TAX')
@@ -470,17 +470,17 @@ const store = new Vuex.Store({
 							id         : product.id, 
 							price      : product.price, 
 							amount     : 0, 
-							//icon       : "box",
+							icon       : "box",
 							type       : product.type,
 							name       : product.name,
 							description: product.description,
 							cover      : product.cover,
 						},
-						//icon : "box",
+						icon : "box",
 						// Non-dropdown properties
 						id				 : product.id,
 						name			 : product.name,
-						amount   : 0,
+						amount     : 0,
 						type       : product.type,
 						description: product.description,
 						price      : product.price,
@@ -490,7 +490,7 @@ const store = new Vuex.Store({
 					context.commit("HAS_PRODUCT_OPTIONS", true)
 					//context.commit('SET_IS_LOADING')
 				})
-				.catch(error => alert("Unable to load products."))
+        .catch(error => alert("Unable to load products."))
 		}
 	},
 })
@@ -828,7 +828,7 @@ const SalesForm = Vue.component("sales-form", {
           this.customer = sale.customer.id
           // Set product
           let products = sale.products.map(product => ({
-            //icon        : "box",
+            icon        : "box",
             amount      : product.quantity,
             cover       : `http://10.51.136.173:8000${product.cover}`,
             description : product.description,
