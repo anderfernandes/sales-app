@@ -111,6 +111,7 @@ const store = new Vuex.Store({
     errors            : {},
     showModal         : false,
     activeTab         : 0,
+    paid              : 0,
     event_types       : [],
     sales             : [],
     currencySettings  : {
@@ -120,6 +121,9 @@ const store = new Vuex.Store({
 	},
 	// ??
 	mutations: {
+    SET_PAID(state, amount) {
+      state.paid = amount
+    },
     SET_SALES(state, sales) {
       Vue.set(state, "sales", sales)
     },
@@ -151,11 +155,14 @@ const store = new Vuex.Store({
 		},
 		SET_MEMO(state, memo) {
 			state.memo = memo
-		},
-		SET_EVENTS(state, payload)
+    },
+    SET_MEMOS(state, memos) {
+      state.memos = memos
+    },
+		SET_EVENT(state, payload)
 		{
 			state.events.splice(payload.index, 1, payload.event_id)
-		},
+    },
 		SET_TAXABLE(state, taxable) {
 			state.taxable = taxable
 		},
@@ -169,7 +176,7 @@ const store = new Vuex.Store({
 			state.tickets.splice(payload.index, 1, payload.tickets)
 		},
 		SET_PRODUCTS(state, products) {
-			Vue.set(state, 'products', products)
+      state.products = products
 		},
 		SET_SETTINGS(state, settings) {
 			state.settings = settings
@@ -193,7 +200,10 @@ const store = new Vuex.Store({
 		},
 		SET_TENDERED(state, tendered) {
 			state.tendered = tendered
-		},
+    },
+    SET_PAYMENTS(state, payments) {
+      state.payments = payments
+    },
 		SET_PAYMENT_METHODS(state, paymentMethods) {
 			Vue.set(state, 'paymentMethods', paymentMethods)
 		},
@@ -242,56 +252,57 @@ const store = new Vuex.Store({
 		HAS_PRODUCT_OPTIONS(state, status) {
 			state.hasProductOptions = status
 		},
-		IS_LOADING(state) {
-			state.isLoading = !(state.hasCustomerOptions && 
-													state.hasGradeOptions    && 
-													state.hasPaymentMethods  && 
-													state.hasProductOptions  && 
-													state.hasSettings)
-		}
+		SET_IS_LOADING(state) {
+			state.isLoading = !state.isLoading
+    },
+    SET_CREATOR_ID(state, creator_id) {
+      state.creator_id = creator_id
+    }
 	},
 	// alias to computed properties in vue
 	getters: {
-    sales           : state => state.sales,
-    event_types     : state => state.event_types,
-		creator_id      : state => state.creator_id,
-		settings        : state => state.settings,
-		taxableOptions  : state => state.taxableOptions,
-		taxable         : state => state.taxable,
-		ticket          : state => state.tickets,
-		tickets         : state => state.tickets,
-		productOptions  : state => state.productOptions,
-		products        : state => state.products,
-		subtotal        : state => state.subtotal,
-		tax             : state => state.tax,
-		total           : state => parseFloat(state.subtotal) + parseFloat(state.tax),
-		tendered        : state => state.tendered,
-		paymentMethods  : state => state.paymentMethods,
-		paymentMethod   : state => state.paymentMethod,
-		payments        : state => state.payments,
-		sellToOptions   : state => state.sellToOptions,
-		sellTo          : state => state.sellTo,
-		saleStatuses    : state => state.saleStatuses,
-		saleStatus      : state => state.saleStatus,
-		customerOptions : state => state.customerOptions,
-		customer        : state => state.customer,
-		gradeOptions    : state => state.gradeOptions,
-		grades          : state => state.grades,
-		numberOfEvents  : state => state.numberOfEvents,
-		reference       : state => state.reference,
-		isLoading       : state => state.isLoading,
-		events          : state => state.events,
-    memo            : state => state.memo,
-    memos           : state => state.memos,
-    change_due      : state => state.change_due,
-    errors          : state => state.errors,
-    hasErrors       : state => Object.keys(state.errors).length > 0,
-    showModal       : state => state.showModal,
-    dates           : state => state.dates,
-    eventOptions    : state => state.eventOptions,
-    ticketOptions   : state => state.ticketOptions,
-    activeTab       : state => state.activeTab,
-    currencySettings: state => state.currencySettings,
+    paid             : state => state.paid,
+    sales            : state => state.sales,
+    event_types      : state => state.event_types,
+		creator_id       : state => state.creator_id,
+		settings         : state => state.settings,
+		taxableOptions   : state => state.taxableOptions,
+		taxable          : state => state.taxable,
+		ticket           : state => state.tickets,
+		tickets          : state => state.tickets,
+		productOptions   : state => state.productOptions,
+		products         : state => state.products,
+		subtotal         : state => state.subtotal,
+		tax              : state => state.tax,
+		total            : state => parseFloat(state.subtotal) + parseFloat(state.tax),
+		tendered         : state => state.tendered,
+		paymentMethods   : state => state.paymentMethods,
+		paymentMethod    : state => state.paymentMethod,
+		payments         : state => state.payments,
+		sellToOptions    : state => state.sellToOptions,
+		sellTo           : state => state.sellTo,
+		saleStatuses     : state => state.saleStatuses,
+		saleStatus       : state => state.saleStatus,
+		customerOptions  : state => state.customerOptions,
+		customer         : state => state.customer,
+		gradeOptions     : state => state.gradeOptions,
+		grades           : state => state.grades,
+		numberOfEvents   : state => state.numberOfEvents,
+		reference        : state => state.reference,
+		isLoading        : state => state.isLoading,
+		events           : state => state.events,
+    memo             : state => state.memo,
+    memos            : state => state.memos,
+    change_due       : state => state.change_due,
+    errors           : state => state.errors,
+    hasErrors        : state => Object.keys(state.errors).length > 0,
+    showModal        : state => state.showModal,
+    dates            : state => state.dates,
+    eventOptions     : state => state.eventOptions,
+    ticketOptions    : state => state.ticketOptions,
+    activeTab        : state => state.activeTab,
+    currencySettings : state => state.currencySettings,
+    sale             : state => state.sale,
 	},
 	// alias to methods in vue
 	actions: {
@@ -311,6 +322,12 @@ const store = new Vuex.Store({
         .then(response => context.commit("SET_EVENT_TYPES", response.data))
         .catch(error => context.commit("SET_ERRORS", errors))
     },
+    setIsLoading(context) {
+      context.commit("SET_IS_LOADING")
+    },
+    setPaid(context, amount) {
+      context.commit("SET_PAID", amount)
+    },
     setTickets(context, payload) {
       context.commit("SET_TICKETS", payload)
     },
@@ -323,6 +340,9 @@ const store = new Vuex.Store({
     setEventOptions(context, payload) {
       context.commit("SET_EVENT_OPTIONS", payload)
     },
+    setEvent(context, event) {
+      context.commit("SET_EVENT", event) 
+    },
     setTicketOptions(context, payload) {
       context.commit("SET_TICKET_OPTIONS", payload)
     },
@@ -333,10 +353,14 @@ const store = new Vuex.Store({
       context.commit("SET_ERRORS", errors)
     },
 		setMemo(context, memo) {
-			context.commit('SET_MEMO', memo)
-		},
+			context.commit("SET_MEMO", memo)
+    },
+    setMemos(context, memos) {
+      context.commit("SET_MEMOS", memos)
+    },
 		setProducts(context, products) {
-			context.commit('SET_PRODUCTS', products)
+      context.commit("SET_PRODUCTS", products)
+      context.commit("SET_IS_LOADING", false)
 		},
 		calculateTotals(context) {
 			context.commit('SET_TAX')
@@ -350,7 +374,7 @@ const store = new Vuex.Store({
 			context.commit('SET_TAX')
 		},
 		setTendered(context, tendered) {
-			context.commit('SET_TENDERED')
+			context.commit("SET_TENDERED")
 		},
 		setPaymentMethod(context, paymentMethod) {
 			context.commit('SET_PAYMENT_METHOD', paymentMethod)
@@ -371,7 +395,7 @@ const store = new Vuex.Store({
 			context.commit('SET_NUMBER_OF_EVENTS')
 		},
 		setReference(context, reference) {
-			context.commit('SET_REFERENCE', reference)
+			context.commit("SET_REFERENCE", reference)
 		},
 		fetchSettings(context) {
 			axios
@@ -380,7 +404,7 @@ const store = new Vuex.Store({
 					let tax = parseFloat(response.data.tax) / 100
 					context.commit('SET_SETTINGS', { tax: tax })
 					context.commit('HAS_SETTINGS', true)
-					context.commit('IS_LOADING')
+					//context.commit('SET_IS_LOADING')
 				})
 		},
 		fetchPaymentMethods(context) {
@@ -393,9 +417,9 @@ const store = new Vuex.Store({
 					value: payment_method.id,
 					icon : payment_method.icon
 				}))
-				context.commit('SET_PAYMENT_METHODS', paymentMethods)
-				context.commit('HAS_PAYMENT_METHODS', true)
-				context.commit('IS_LOADING')
+				context.commit("SET_PAYMENT_METHODS", paymentMethods)
+				context.commit("HAS_PAYMENT_METHODS", true)
+				//context.commit("SET_IS_LOADING")
 			})
 			.catch(error => alert("Unable to load payment methods."))
 		},
@@ -414,9 +438,9 @@ const store = new Vuex.Store({
 							organization: { id: customer.organization.id },
 						}
 					})
-					context.commit('SET_CUSTOMER_OPTIONS', customerOptions)
-					context.commit('HAS_CUSTOMER_OPTIONS', true)
-					context.commit('IS_LOADING')
+					context.commit("SET_CUSTOMER_OPTIONS", customerOptions)
+					context.commit("HAS_CUSTOMER_OPTIONS", true)
+					//context.commit("SET_IS_LOADING")
 				})
         .catch(error => alert("Unable to load customers."))
 		},
@@ -429,9 +453,9 @@ const store = new Vuex.Store({
 						text : grade.name,
 						value: grade.id,
 					}))
-					context.commit('SET_GRADE_OPTIONS', gradeOptions)
-					context.commit('HAS_GRADE_OPTIONS', true)
-					context.commit('IS_LOADING')
+					context.commit("SET_GRADE_OPTIONS", gradeOptions)
+					context.commit("HAS_GRADE_OPTIONS", true)
+					//context.commit("SET_IS_LOADING")
 				})
 				.catch(error => alert("Unable to load grades."))
 		},
@@ -446,13 +470,13 @@ const store = new Vuex.Store({
 							id         : product.id, 
 							price      : product.price, 
 							amount     : 0, 
-							icon       : "box",
+							//icon       : "box",
 							type       : product.type,
 							name       : product.name,
 							description: product.description,
 							cover      : product.cover,
 						},
-						icon : "box",
+						//icon : "box",
 						// Non-dropdown properties
 						id				 : product.id,
 						name			 : product.name,
@@ -462,9 +486,9 @@ const store = new Vuex.Store({
 						price      : product.price,
 						cover      : product.cover,
 					}))
-					context.commit('SET_PRODUCT_OPTIONS', productOptions)
-					context.commit('HAS_PRODUCT_OPTIONS', true)
-					context.commit('IS_LOADING')
+					context.commit("SET_PRODUCT_OPTIONS", productOptions)
+					context.commit("HAS_PRODUCT_OPTIONS", true)
+					//context.commit('SET_IS_LOADING')
 				})
 				.catch(error => alert("Unable to load products."))
 		}
@@ -561,10 +585,6 @@ const EventForm = Vue.component("event-form", {
 		},
 	},
 	computed: {
-    date: {
-      set(date) { store.dispatch("setDate", { index: this.$vnode.key - 1, date: date }) },
-      get() { return store.getters.dates[this.$vnode.key -1] }
-    },
     eventOptions: {
       set(eventOptions) { store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions }) },
       get() { return store.getters.eventOptions[this.$vnode.key - 1] }
@@ -580,13 +600,17 @@ const EventForm = Vue.component("event-form", {
       },
       get() { return store.getters.tickets[this.$vnode.key - 1] }
     },
+    date: {
+      set(date) { store.dispatch("setDate", { index: this.$vnode.key - 1, date: date }) },
+      get() { return store.getters.dates[this.$vnode.key -1] }
+    },
 		event: {
 			set(event_id) { 
 				let event = {
 					index: this.$vnode.key - 1,
 					event_id: event_id,
 				}
-				this.$store.commit('SET_EVENTS', event) 
+				this.$store.dispatch("setEvent", event) 
 			},
 			get() { return this.$store.getters.events[this.$vnode.key - 1] }
 		}
@@ -624,22 +648,28 @@ const SalesForm = Vue.component("sales-form", {
 		this.$store.dispatch('fetchGrades')
 		this.$store.dispatch('fetchProducts')
 		this.$store.dispatch('fetchPaymentMethods')
-		// Fetch payments if a sale exists?
-		//console.log(this.$vnode.key)
-	},
+    //console.log(this.$vnode.key)
+    // Fetch payments if a sale exists?
+    if (this.$route.params.id)
+      this.fetchSale()
+  },
+  beforeMount() {
+
+  },
 	updated() {
-    this.$store.dispatch('calculateTotals')
+    this.$store.dispatch("calculateTotals")
 	},
 	computed: {
     payments() {
       return this.$store.getters.payments
     },
-    memos() {
-      return this.$store.getters.memos
-    },
     activeTab: {
       set(index) { this.$store.dispatch("setActiveTab", index) },
       get() { return this.$store.getters.activeTab }
+    },
+    memos: {
+      set(memos) { this.$store.dispatch("setMemos", memos) },
+      get() { return this.$store.getters.memos }
     },
 		memo: {
 			set(memo) { this.$store.dispatch('setMemo', memo) },
@@ -652,7 +682,7 @@ const SalesForm = Vue.component("sales-form", {
 			return this.$store.getters.productOptions
 		},
 		products: {
-			set(newProduct) { this.$store.dispatch('setProducts', newProduct) },
+			set(newProduct) { store.dispatch('setProducts', newProduct) },
 			get() { return this.$store.getters.products },
 		},
 		taxableOptions() { 
@@ -663,7 +693,7 @@ const SalesForm = Vue.component("sales-form", {
 			get() { return this.$store.getters.taxable }
 		},
 		subtotal() {
-			return this.$store.getters.subtotal.toLocaleString("en-US", store.getters.currencySettings)
+      return this.$store.getters.subtotal.toLocaleString("en-US", store.getters.currencySettings)
 		},
 		tax() {
 			return this.$store.getters.tax.toLocaleString("en-US", store.getters.currencySettings)
@@ -675,17 +705,19 @@ const SalesForm = Vue.component("sales-form", {
 			get() { 
 				return this.$store.getters.tendered.toLocaleString("en-US", store.getters.currencySettings)
 			},
-			set(tendered) { 
-				this.$store.commit('SET_TENDERED', tendered) 
+			set(tendered) {
+        this.$store.dispatch("setTendered", tendered) 
 			}
-		},
-		paid() {
-			// Check if sale data and tendered exists, if not, return 0
-			/*if (parseFloat(this.tendered) > 0)
-				return parseFloat(this.tendered).toLocaleString("en-US", {maximumFractionDigits: 2})
-			else*/
-				return (0).toLocaleString("en-US", store.getters.currencySettings)
-		},
+    },
+    paid: {
+      set(amount) { this.$store.dispatch("setPaid", amount) },
+      get() { 
+        if (this.$store.getters.paid > 0 )
+          return this.$store.getters.paid.toLocaleString("en-US", store.getters.currencySettings)
+        else
+          return 0..toLocaleString("en-US", store.getters.currencySettings)
+      }
+    },
 		balance() {
 			// Check if sale data exists and payments exist, if not, return 0
 			let result = parseFloat(this.total) - parseFloat(this.tendered)
@@ -742,9 +774,10 @@ const SalesForm = Vue.component("sales-form", {
 		numberOfEvents: {
 			set(numberOfEvents) { this.$store.dispatch('setNumberOfEvents', numberOfEvents) },
 			get() { return this.$store.getters.numberOfEvents },
-		},
-		isLoading() {
-			return this.$store.getters.isLoading
+    },
+    isLoading: {
+      set(isLoading) { this.$store.dispatch("setIsLoading", isLoading) },
+      get() { return this.$store.getters.isLoading }
     },
     errors() {
       return this.$store.getters.errors
@@ -779,6 +812,59 @@ const SalesForm = Vue.component("sales-form", {
     },
 	},
   methods: {
+    // Fetch Sale
+    fetchSale() {
+      let errors = {}
+      errors.fetchSale = ["Unable to fetch sale"]
+      axios
+        .get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
+        .then(response => {
+          let sale = response.data
+          // Set sell to
+          this.sellTo = sale.sell_to_organization ? 1 : 0
+          // Set grades
+          this.grades = sale.grades.map(grade => grade.id) // only id of grades
+          // Set customer
+          this.customer = sale.customer.id
+          // Set product
+          let products = sale.products.map(product => ({
+            //icon        : "box",
+            amount      : product.quantity,
+            cover       : `http://10.51.136.173:8000${product.cover}`,
+            description : product.description,
+            id          : product.id,
+            name        : product.name,
+            price       : parseFloat(product.price),
+            type        : product.type
+          }))
+          this.products = products
+          // Setting sale status
+          this.saleStatus = sale.status
+          // Setting memos
+          this.memos = sale.memos
+          // Setting subtotal
+          //this.subtotal = sale.subtotal
+          this.taxable = parseInt(sale.taxable)
+          // Setting tendered
+          this.paid = sale.payments.reduce((total, payment) => total + parseFloat(payment.total), 0)
+          // Setting number of events
+          // response.data.events.forEach(event => context.commit("SET_NUMBER_OF_EVENTS"))
+          
+          // Setting payments
+          //context.commit("SET_PAYMENTS", response.data.payments)
+          // Set products
+          //context.commit("SET_PRODUCTS", response.data.products)
+          
+          
+          // Set creator
+          //context.commit("SET_CREATOR_ID", response.data.creator.id)
+          // Set events
+          /*response.data.events.forEach((event, index) => context.commit("SET_EVENTS", {
+            index: index, event_id: event.id
+          }))*/
+        })
+        .catch(error => alert(error.message))
+    },
 		// Add a new event form for another event
 		addEvent(event) {
 			event.preventDefault()
@@ -927,7 +1013,7 @@ const routes = [
   { path: "/",          name:"index",  component: Index  },
   { path: "/create",    name:"create", component: Create },
   { path: "/:id",       name:"show",   component: Show,  },
-  { path: "/:id/edit",  name:"update", component: Edit,  },
+  { path: "/:id/edit",  name:"edit",   component: Edit,  },
 ]
 
 // Defining Router

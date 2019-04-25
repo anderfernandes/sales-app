@@ -123,7 +123,7 @@
                           v-for="n in numberOfEvents" 
                           :key="n"  
                           :cashier="{ id: 3 }"
-                          :type="type"
+                          :type="type || 2"
                           />
                         </transition-group>
                       </div>
@@ -145,8 +145,7 @@
                         </div>
                         <div class="ui form">
                             <div class="field">
-                              <sui-dropdown fluid selection direction="upward"
-                                            multiple 
+                              <sui-dropdown fluid selection multiple
                                             placeholder="Select products"
                                             :options="productOptions"
                                             v-model="products"
@@ -155,6 +154,7 @@
                         </div>
                         <transition mode="out-in" name="fade">
                           <div id="products" v-if="products.length > 0">
+                            <br>
                             <table class="ui selectable single line very compact table">
                             <thead>
                               <tr class="header">
@@ -295,11 +295,14 @@
                     </div>
                     <div class="content">
                       <div class="author">
-                        {{ memo.author.fistname }} {{ memo.author.lastname }}
-                        <div class="ui black label">{{ memo.author.role.name }}</div>
-                        <div class="metadata">{{ memo.created_at }}</div>
+                        {{ memo.author.name }}
+                        <div class="ui black label">{{ memo.author.role }}</div>
+                        <div class="metadata">
+                          {{ format(new Date(memo.created_at), $dateFormat.long) }}
+                          ({{ distanceInWords(new Date(), new Date(memo.created_at)) }})
+                        </div>
                       </div>
-                      <div class="text">This is cool!!!</div>
+                      <div class="text">{{ memo.message }}</div>
                     </div>
                   </div>
                 </div>
@@ -318,60 +321,60 @@
           </div>
           <!--- Totals --->
           <div class="ui grid">
-                <div class="sixteen wide column" style="padding: 0 0 0 0 !important">
-                  <div class="ui bottom fixed sticky" style="width:100%; right:0">
-                    <div class="ui inverted segment" style="border-radius: 0 !important">
-                      <div class="ui container">
-                        <div class="ui inverted form">
-                          <div class="five fields">
-                            <!--- Subtotal --->
-                            <div class="field">
-                              <label>Subtotal</label>
-                              <div class="ui inverted transparent left icon input">
-                                <i class="dollar icon"></i>
-                                <input style="color:white; font-weight:bold" type="text" v-model="subtotal">
-                              </div>
-                            </div>
-                            <!--- Tax --->
-                            <div class="field">
-                              <label>Tax ({{ settings.tax * 100 }}%)</label>
-                              <div class="ui inverted transparent left icon input">
-                                <i class="dollar icon"></i>
-                                <input style="color:white; font-weight:bold" type="text" v-model="tax">
-                              </div>
-                            </div>
-                            <!--- Total --->
-                            <div class="field">
-                              <label>Total</label>
-                              <div class="ui inverted transparent left icon input">
-                                <i class="dollar icon"></i>
-                                <input style="color:white; font-weight:bold" 
-                                      type="text" readonly
-                                      v-model="total">
-                              </div>
-                            </div>
-                            <!--- Paid --->
-                            <div class="field">
-                              <label>Paid</label>
-                              <div class="ui inverted transparent left icon input">
-                                <i class="dollar icon"></i>
-                                <input style="color:white; font-weight:bold" type="text" v-model="paid">
-                              </div>
-                            </div>
-                            <!-- Balance -->
-                            <div class="field">
-                              <label>Balance</label>
-                              <div class="ui inverted transparent left icon input">
-                                <i class="dollar icon"></i>
-                                <input style="color:white; font-weight:bold" type="text" v-model="balance">
-                              </div>
-                            </div>
+            <div class="sixteen wide column" style="padding: 0 0 0 0 !important">
+              <div class="ui bottom fixed sticky" style="width:100%; right:0">
+                <div class="ui inverted segment" style="border-radius: 0 !important">
+                  <div class="ui container">
+                    <div class="ui inverted form">
+                      <div class="five fields">
+                        <!--- Subtotal --->
+                        <div class="field">
+                          <label>Subtotal</label>
+                          <div class="ui inverted transparent left icon input">
+                            <i class="dollar icon"></i>
+                            <input style="color:white; font-weight:bold" type="text" v-model="subtotal">
+                          </div>
+                        </div>
+                        <!--- Tax --->
+                        <div class="field">
+                          <label>Tax ({{ settings.tax * 100 }}%)</label>
+                          <div class="ui inverted transparent left icon input">
+                            <i class="dollar icon"></i>
+                            <input style="color:white; font-weight:bold" type="text" v-model="tax">
+                          </div>
+                        </div>
+                        <!--- Total --->
+                        <div class="field">
+                          <label>Total</label>
+                          <div class="ui inverted transparent left icon input">
+                            <i class="dollar icon"></i>
+                            <input style="color:white; font-weight:bold" 
+                                  type="text" readonly
+                                  v-model="total">
+                          </div>
+                        </div>
+                        <!--- Paid --->
+                        <div class="field">
+                          <label>Paid</label>
+                          <div class="ui inverted transparent left icon input">
+                            <i class="dollar icon"></i>
+                            <input style="color:white; font-weight:bold" type="text" v-model="paid">
+                          </div>
+                        </div>
+                        <!-- Balance -->
+                        <div class="field">
+                          <label>Balance</label>
+                          <div class="ui inverted transparent left icon input">
+                            <i class="dollar icon"></i>
+                            <input style="color:white; font-weight:bold" type="text" v-model="balance">
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
           </div>
         </div>
       </transition>
@@ -567,7 +570,8 @@
         <i class="left chevron icon"></i>
         Back
       </div>
-      <div class="ui yellow button">
+      <div class="ui yellow button" 
+           @click="$router.push({ name: 'edit', params: { id: sale.id } })">
         <i class="edit icon"></i>
         Edit Sale
       </div>
@@ -638,13 +642,14 @@
             <div class="ui raised card">
               <div class="content">
                 <div class="ui top attached black center aligned large label">
-                  <i class="user icon"></i> Customer
+                  <i class="user icon"></i> Customer Information
                 </div>
                 <div class="header">{{ sale.customer.name }}</div>
                 <div class="meta">
                   <i class="user icon"></i> {{ sale.customer.role.name }}
                 </div>
                 <div class="meta" v-if="sale.customer.organization.id != 1">
+                  <i class="university icon"></i>
                   {{ sale.customer.organization.name }}
                 </div>
                 <div class="description">
@@ -700,7 +705,7 @@
                         <div class="sub header">
                           {{ format(new Date(event.start), $dateFormat.long) }}
                           <div class="ui circular label" :style="{backgroundColor: event.color, color: 'rgba(255, 255, 255, 0.8)'}">
-                            {{ event.type }}
+                            {{ event.type.name }}
                           </div>
                         </div>
                         {{ event.show.name }}
@@ -737,10 +742,10 @@
                           </div>
                           <div class="ui black label" style="margin-left:0">
                             <i class="dollar icon"></i>
-                            {{ parseFloat(product.price) }} each
+                            {{ parseFloat(product.price).toFixed(2) }} each
                           </div>
                           <div class="ui circular blue label" style="margin-left:0">
-                            {{ product.type }}
+                            {{ product.type.name }}
                           </div>
                         </div>
                         <div>{{ product.name }}</div>
@@ -886,7 +891,7 @@
   </template>
 
   <template id="edit">
-    <h1>Welcome to update!</h1>
+    <sales-form></sales-form>
   </template>
 
   <template id="sale-box">
