@@ -69,7 +69,9 @@ const store = new Vuex.Store({
     ticketOptions     : [], // Array of objects with tickets options, index + 1 is event number
 		payments          : [], // Sale payments
 		productOptions    : [],
-		products          : [], // array, user defined
+    products          : [], // array, user defined
+    availableProducts : [],
+    selectedProducts  : [],
 		subtotal          : 0,
 		change_due        : 0,
 		taxableOptions    : [
@@ -121,6 +123,17 @@ const store = new Vuex.Store({
 	},
 	// ??
 	mutations: {
+    SET_PRODUCTS(state, products) {
+
+      state.products = products
+      state.selectedProducts = []
+      
+      state.products.forEach(product_id => {
+        let p = state.availableProducts.find(product => product.id == product_id)
+        state.selectedProducts.push(p)
+      })
+
+		},
     SET_PAID(state, amount) {
       state.paid = amount
     },
@@ -175,9 +188,6 @@ const store = new Vuex.Store({
 		SET_TICKETS(state, payload) {
 			state.tickets.splice(payload.index, 1, payload.tickets)
 		},
-		SET_PRODUCTS(state, products) {
-      state.products = products
-		},
 		SET_SETTINGS(state, settings) {
 			state.settings = settings
 		},
@@ -186,8 +196,8 @@ const store = new Vuex.Store({
 			let ticketTotals  = 0
 			
 			// Calculating product totals
-			if (state.products.length > 0)
-				productTotals = state.products.reduce((total, product) => 
+			if (state.selectedProducts.length > 0)
+				productTotals = state.selectedProducts.reduce((total, product) => 
 					(total + (product.amount * product.price)), 0
 				)
 
@@ -202,7 +212,7 @@ const store = new Vuex.Store({
 			state.tendered = tendered
     },
     SET_PAYMENTS(state, payments) {
-      state.payments = payments
+      Vue.set(state, "payments", payments)
     },
 		SET_PAYMENT_METHODS(state, paymentMethods) {
 			Vue.set(state, 'paymentMethods', paymentMethods)
@@ -228,9 +238,33 @@ const store = new Vuex.Store({
 		SET_GRADES(state, grades) {
 			Vue.set(state, 'grades', grades)
 		},
-		SET_PRODUCT_OPTIONS(state, productOptions) {
-			Vue.set(state, 'productOptions', productOptions)
-		},
+		SET_PRODUCT_OPTIONS(state, products) {
+      
+      let productOptions = products.map(product => ({
+        key   : product.id,
+        text  : `${product.name} (${product.type.name})`,
+        value : product.id,
+        icon  : "box",
+      }))
+      
+      Vue.set(state, "productOptions", productOptions)
+
+      let availableProducts = products.map(product => ({
+        id          : product.id,
+        amount      : 0,
+        name        : product.name,
+        description : product.description,
+        type        : product.type,
+        price       : product.price,
+        cover       : product.cover, 
+      }))
+      
+      Vue.set(state, "availableProducts", availableProducts)
+
+    },
+    SET_SELECTED_PRODUCTS(state, selectedProducts) {
+      Vue.set(state, "selectedProducts", selectedProducts)
+    },
 		SET_REFERENCE(state, reference) {
 			state.reference = reference
 		},
@@ -303,9 +337,16 @@ const store = new Vuex.Store({
     activeTab        : state => state.activeTab,
     currencySettings : state => state.currencySettings,
     sale             : state => state.sale,
+    selectedProducts : state => state.selectedProducts,
 	},
 	// alias to methods in vue
 	actions: {
+    setPayments(context, payments) {
+      context.commit("SET_PAYMENTS", payments)
+    },
+    setSelectedProducts(context, selectedProducts) {
+      context.commit("SET_SELECTED_PRODUCTS", selectedProducts)
+    },
     fetchSales(context) {
       let errors = {}
       errors.fetchSales = ["Unable to fetch sales"]
@@ -463,32 +504,10 @@ const store = new Vuex.Store({
 			axios
 				.get("http://10.51.136.173:8000/api/products")
 				.then(response => { 
-					let productOptions = response.data.data.map(product => ({
-						key  : product.id,
-						text : `${product.name} (${product.type.name})`,
-						value: { 
-							id         : product.id, 
-							price      : product.price, 
-							amount     : 0, 
-							icon       : "box",
-							type       : product.type,
-							name       : product.name,
-							description: product.description,
-							cover      : product.cover,
-						},
-						icon : "box",
-						// Non-dropdown properties
-						id				 : product.id,
-						name			 : product.name,
-						amount     : 0,
-						type       : product.type,
-						description: product.description,
-						price      : product.price,
-						cover      : product.cover,
-					}))
-					context.commit("SET_PRODUCT_OPTIONS", productOptions)
+					
+					context.commit("SET_PRODUCT_OPTIONS", response.data.data)
 					context.commit("HAS_PRODUCT_OPTIONS", true)
-					//context.commit('SET_IS_LOADING')
+					context.commit("SET_IS_LOADING")
 				})
         .catch(error => alert("Unable to load products."))
 		}
@@ -643,11 +662,11 @@ const SalesForm = Vue.component("sales-form", {
   template: "#sales-form",
   components: { EventForm },
   created() {
-		this.$store.dispatch('fetchSettings')
-		this.$store.dispatch('fetchCustomers')
-		this.$store.dispatch('fetchGrades')
-		this.$store.dispatch('fetchProducts')
-		this.$store.dispatch('fetchPaymentMethods')
+		this.$store.dispatch("fetchSettings")
+		this.$store.dispatch("fetchCustomers")
+		this.$store.dispatch("fetchGrades")
+		this.$store.dispatch("fetchProducts")
+		this.$store.dispatch("fetchPaymentMethods")
     //console.log(this.$vnode.key)
     // Fetch payments if a sale exists?
     if (this.$route.params.id)
@@ -660,8 +679,9 @@ const SalesForm = Vue.component("sales-form", {
     this.$store.dispatch("calculateTotals")
 	},
 	computed: {
-    payments() {
-      return this.$store.getters.payments
+    selectedProducts: {
+      set(selectedProducts) { this.$store.dispatch("setSelectedProducts", selectedProducts) },
+      get() { return this.$store.getters.selectedProducts }
     },
     activeTab: {
       set(index) { this.$store.dispatch("setActiveTab", index) },
@@ -675,8 +695,9 @@ const SalesForm = Vue.component("sales-form", {
 			set(memo) { this.$store.dispatch('setMemo', memo) },
 			get()     { return this.$store.getters.memo }
 		},
-		payments() {
-			return this.$store.getters.payments
+		payments: {
+      set(payments) { this.$store.dispatch("setPayments", payments) },
+      get() { return this.$store.getters.payments }
 		},
 		productOptions() {
 			return this.$store.getters.productOptions
@@ -827,17 +848,17 @@ const SalesForm = Vue.component("sales-form", {
           // Set customer
           this.customer = sale.customer.id
           // Set product
-          let products = sale.products.map(product => ({
-            icon        : "box",
-            amount      : product.quantity,
-            cover       : `http://10.51.136.173:8000${product.cover}`,
-            description : product.description,
+          this.products = sale.products.map(product => product.id)
+          // Set selected products
+          this.selectedProducts = sale.products.map(product => ({
             id          : product.id,
+            amount      : product.quantity,
             name        : product.name,
-            price       : parseFloat(product.price),
-            type        : product.type
-          }))
-          this.products = products
+            description : product.description,
+            type        : product.type,
+            price       : product.price,
+            cover       : product.cover, 
+          })) 
           // Setting sale status
           this.saleStatus = sale.status
           // Setting memos
@@ -847,6 +868,8 @@ const SalesForm = Vue.component("sales-form", {
           this.taxable = parseInt(sale.taxable)
           // Setting tendered
           this.paid = sale.payments.reduce((total, payment) => total + parseFloat(payment.total), 0)
+          // Setting payments
+          this.payments = sale.payments
           // Setting number of events
           // response.data.events.forEach(event => context.commit("SET_NUMBER_OF_EVENTS"))
           

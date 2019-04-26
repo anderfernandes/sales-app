@@ -153,7 +153,7 @@
                           </div>
                         </div>
                         <transition mode="out-in" name="fade">
-                          <div id="products" v-if="products.length > 0">
+                          <div id="products" v-if="selectedProducts.length > 0">
                             <br>
                             <table class="ui selectable single line very compact table">
                             <thead>
@@ -163,7 +163,7 @@
                               </tr>
                             </thead>
                               <tbody name="fade" is="transition-group" mode="out-in">
-                                <tr v-for="product in products"
+                                <tr v-for="product in selectedProducts"
                                     :key="product.id">
                                   <td>
                                     <div class="ui small header">
@@ -186,7 +186,7 @@
                                             min="0" 
                                             v-model.number="product.amount" 
                                             placeholder="Amount"
-                                            @input="$store.dispatch('setProducts', products)">
+                                            @input="$store.dispatch('setSelectedProducts', selectedProducts)">
                                       <div class="ui basic label">
                                         $ {{ product.price.toFixed(2) }} each
                                       </div>
@@ -262,20 +262,23 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr>
-                            <td v-for="payment in payments" :key="payment.id">
+                          <tr v-for="payment in payments" :key="payment.id">
+                            <td>
                               <div class="ui header">
                                 {{ payment.id }}
                               </div>
                             </td>
                             <td><i class="cc visa icon"></i>
-                              {{ payment.method.name }}
+                              {{ payment.method }}
                             </td>
                             <td>$ {{ payment.total }}</td>
-                            <td>{{ payment.created_at }}</td>
+                            <td>
+                                {{ format(new Date(payment.created_at), $dateFormat.long) }}
+                                ({{ distanceInWords(new Date(), new Date(payment.created_at)) }})
+                            </td>
                             <td>
                               <i class="user circle icon"></i>
-                              {{ payment.cashier.firstname }}
+                              {{ payment.cashier.name }}
                             </td>
                           </tr>
                         </tbody>
@@ -733,7 +736,7 @@
                 <div class="ui divided list">
                   <div class="item" v-for="product in sale.products">
                     <h3 class="ui header">
-                      <img :src="product.cover == '/default.png' ? `http://10.51.136.173:8000${product.cover}` : `http://10.51.136.173:8000/storage/products${product.cover}`">
+                      <img :src="product.cover">
                       <div class="content">
                         <div class="sub header">
                           <div class="ui black label" style="margin-left:0">
@@ -953,6 +956,15 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+        <div class="meta" v-if="sale.products.length > 0">
+          <div class="ui label" v-for="product in sale.products">
+            <i class="box icon"></i>
+            {{ product.name }}
+            <div class="detail" v-if="product.quantity">
+              {{ product.quantity }}
             </div>
           </div>
         </div>
