@@ -1,4 +1,4 @@
-let dateFormat = { long: "dddd, MMMM D, YYYY [at] h:mm a" }
+let dateFormat = { long: "dddd, MMMM D, YYYY [at] h:mm a", short: "dddd, MMMM D, YYYY" }
 
 Vue.config.devtools = true // DISABLE THIS IN PRODUCTION
 Vue.use(SemanticUIVue)
@@ -62,10 +62,12 @@ const store = new Vuex.Store({
 	state: {
 		creator_id        : 3,
 		settings          : [],
-		tickets           : [], // Each item represents and event and every event containts tickets for that event
     events            : [],
     dates             : [], // Array for dates of each event, index + 1 is event number
     eventOptions      : [], // Array of objects with event options, index + 1 is event number
+    tickets           : [], // Each item represents and event and every event containts tickets for that event
+    availableTickets  : [],
+    selectedTickets   : [],
     ticketOptions     : [], // Array of objects with tickets options, index + 1 is event number
 		payments          : [], // Sale payments
 		productOptions    : [],
@@ -123,17 +125,6 @@ const store = new Vuex.Store({
 	},
 	// ??
 	mutations: {
-    SET_PRODUCTS(state, products) {
-
-      state.products = products
-      state.selectedProducts = []
-      
-      state.products.forEach(product_id => {
-        let p = state.availableProducts.find(product => product.id == product_id)
-        state.selectedProducts.push(p)
-      })
-
-		},
     SET_PAID(state, amount) {
       state.paid = amount
     },
@@ -151,9 +142,6 @@ const store = new Vuex.Store({
     },
     SET_EVENT_OPTIONS(state, payload) {
       Vue.set(state.eventOptions, payload.index, payload.eventOptions)
-    },
-    SET_TICKET_OPTIONS(state, payload) {
-      Vue.set(state.ticketOptions, payload.index, payload.ticketOptions)
     },
     SET_SHOW_MODAL(state) {
       state.showModal = !state.showModal
@@ -185,9 +173,6 @@ const store = new Vuex.Store({
 			else
 				state.tax = 0
 		},
-		SET_TICKETS(state, payload) {
-			state.tickets.splice(payload.index, 1, payload.tickets)
-		},
 		SET_SETTINGS(state, settings) {
 			state.settings = settings
 		},
@@ -202,9 +187,10 @@ const store = new Vuex.Store({
 				)
 
 			// Calculating ticket totals
-			if (state.tickets.length > 0)
-				state.tickets.forEach(ticketEventArray => 
-					ticketTotals += ticketEventArray.reduce((total, ticket) => total + (ticket.price * ticket.amount), 0))
+      if (state.tickets.length > 0)
+        ticketTotals =  state.selectedTickets.reduce((total, ticket) =>
+          (total + (ticket.amount * ticket.price)), 0
+        )
 
 			state.subtotal = productTotals + ticketTotals
 		},
@@ -237,6 +223,17 @@ const store = new Vuex.Store({
 		},
 		SET_GRADES(state, grades) {
 			Vue.set(state, 'grades', grades)
+    },
+    SET_PRODUCTS(state, products) {
+
+      state.products         = products
+      state.selectedProducts = []
+      
+      state.products.forEach(product_id => {
+        let p = state.availableProducts.find(product => product.id == product_id)
+        state.selectedProducts.push(p)
+      })
+
 		},
 		SET_PRODUCT_OPTIONS(state, products) {
       
@@ -260,10 +257,52 @@ const store = new Vuex.Store({
       }))
       
       Vue.set(state, "availableProducts", availableProducts)
-
     },
     SET_SELECTED_PRODUCTS(state, selectedProducts) {
       Vue.set(state, "selectedProducts", selectedProducts)
+    },
+    SET_TICKETS(state, tickets) {
+
+      console.log(tickets, "SET_TICKETS")
+
+      state.tickets         = tickets
+      state.selectedTickets = []
+
+      state.tickets.forEach(ticket_id => {
+        let t = state.availableTickets.find(ticket => ticket.id == ticket_id)
+        state.selectedTickets.push(t)
+      })
+			//state.tickets.splice(payload.index, 1, payload.tickets)
+    },
+    SET_TICKET_OPTIONS(state, tickets) {
+
+      console.log(tickets,  "SET_TICKET_OPTIONS")
+
+      let ticketOptions = tickets.map(ticket => ({
+        key   : ticket.id,
+        text  : ticket.name,
+        value : ticket.id,
+        icon  : "ticket",
+      }))
+
+      Vue.set(state, "ticketOptions", ticketOptions)
+
+      let availableTickets = tickets.map(ticket => ({
+        id          : ticket.id,
+        amount      : 0,
+        name        : ticket.name,
+        description : ticket.description,
+        type        : ticket.type,
+        price       : ticket.price,
+        event       : ticket.event,
+      }))
+
+      Vue.set(state, "availableTickets", availableTickets)
+
+      //Vue.set(state.ticketOptions, payload.index, payload.ticketOptions)
+    },
+    SET_SELECTED_TICKETS(state, selectedTickets) {
+      Vue.set(state, "selectedTickets", selectedTickets)
     },
 		SET_REFERENCE(state, reference) {
 			state.reference = reference
@@ -338,6 +377,7 @@ const store = new Vuex.Store({
     currencySettings : state => state.currencySettings,
     sale             : state => state.sale,
     selectedProducts : state => state.selectedProducts,
+    selectedTickets  : state => state.selectedTickets,
 	},
 	// alias to methods in vue
 	actions: {
@@ -347,30 +387,14 @@ const store = new Vuex.Store({
     setSelectedProducts(context, selectedProducts) {
       context.commit("SET_SELECTED_PRODUCTS", selectedProducts)
     },
-    fetchSales(context) {
-      let errors = {}
-      errors.fetchSales = ["Unable to fetch sales"]
-      axios
-        .get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
-        .then(response => context.commit("SET_SALES", response.data.data))
-        .catch(error => context.commit("SET_ERRORS", errors))
-    },
-    fetchEventTypes(context) {
-      let errors = {}
-      errors.fetchEventTypes = ["Unable to fetch event types"]
-      axios
-        .get("http://10.51.136.173:8000/api/event-types")
-        .then(response => context.commit("SET_EVENT_TYPES", response.data))
-        .catch(error => context.commit("SET_ERRORS", errors))
-    },
     setIsLoading(context) {
       context.commit("SET_IS_LOADING")
     },
     setPaid(context, amount) {
       context.commit("SET_PAID", amount)
     },
-    setTickets(context, payload) {
-      context.commit("SET_TICKETS", payload)
+    setTickets(context, tickets) {
+      context.commit("SET_TICKETS", tickets)
     },
     setActiveTab(context, index) {
       context.commit("SET_ACTIVE_TAB", index)
@@ -384,8 +408,8 @@ const store = new Vuex.Store({
     setEvent(context, event) {
       context.commit("SET_EVENT", event) 
     },
-    setTicketOptions(context, payload) {
-      context.commit("SET_TICKET_OPTIONS", payload)
+    setTicketOptions(context, tickets) {
+      context.commit("SET_TICKET_OPTIONS", tickets)
     },
     setShowModal(context) {
       context.commit("SET_SHOW_MODAL")
@@ -510,7 +534,23 @@ const store = new Vuex.Store({
 					context.commit("SET_IS_LOADING")
 				})
         .catch(error => alert("Unable to load products."))
-		}
+    },
+    fetchSales(context) {
+      let errors = {}
+      errors.fetchSales = ["Unable to fetch sales"]
+      axios
+        .get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
+        .then(response => context.commit("SET_SALES", response.data.data))
+        .catch(error => context.commit("SET_ERRORS", errors))
+    },
+    fetchEventTypes(context) {
+      let errors = {}
+      errors.fetchEventTypes = ["Unable to fetch event types"]
+      axios
+        .get("http://10.51.136.173:8000/api/event-types")
+        .then(response => context.commit("SET_EVENT_TYPES", response.data))
+        .catch(error => context.commit("SET_ERRORS", errors))
+    },
 	},
 })
 
@@ -535,19 +575,20 @@ const Modal = Vue.component("modal", {
 // Event Form
 const EventForm = Vue.component("event-form", {
 	template: "#event-form",
-	props: ["type", "cashier"],
+	props: ["type", "cashier", "event-data", "tickets-data"],
 	data: () => ({
 		flatpickrConfig: {
 			dateFormat: "l, F j, Y",
 			defaultDate: "today",
-		}
+    },
+    event_type: null,
 	}),
 	methods: {
 		// Fetch Events
 		fetchEvents() {
 			let date = dateFns.format(new Date(this.date), "YYYY-MM-DD")
 			axios
-				.get(`http://10.51.136.173:8000/api/events?start=${date}&type=${this.type}`)
+				.get(`http://10.51.136.173:8000/api/events?start=${date}&type=${this.event_type || this.type}`)
 				.then(response => {
 					let eventOptions = response.data.map(event => {
 						let time = dateFns.format(new Date(event.start), "h:mm aa")
@@ -560,64 +601,43 @@ const EventForm = Vue.component("event-form", {
           store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions: eventOptions})
 				})
 				.catch(error => alert("Unable to query available events."))
-		},
-		// Fetch Tickets
-		fetchTickets() {
+    },
+    // Fetch Sale Tickets
+    fetchSaleTickets() {
+      axios
+      .get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
+      .then(response => {
+        let tickets = response.data.events[this.$vnode.key - 1].tickets.map(ticket => ticket.id)
+        this.tickets = tickets
+      })
+      .catch(error => alert(error.message))
+    },
+		// Fetch Tickets Types
+		fetchTicketsTypes() {
 			axios
-			.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.type}`)
+			.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.event_type || this.type}`)
 			.then(response => {
-				let ticketOptions = response.data.data.map(ticket => ({
-					key              : ticket.id,
-					text             : `${ticket.name}`,
-					value            : { 
-						id             : ticket.id, 
-						type           : { id: ticket.id },
-						amount         : 0, 
-						price          : ticket.price,
-						event          : { id: this.event },
-						icon					 : "ticket", 
-						name           : ticket.name,
-						description    : ticket.description,
-					},
-					icon					 : "ticket", 
-					id             : ticket.id,
-					name           : ticket.name,
-					description    : ticket.description,
-					price					 : ticket.price,
-					active         : ticket.active,
-					amount         : 0,
-					type_id        : ticket.id,
-					event_id       : this.event,
-				}))
-				store.dispatch("setTicketOptions", { index: this.$vnode.key - 1, ticketOptions: ticketOptions })
+        this.ticketOptions = response.data.data
+				//this.$store.dispatch("setTicketOptions", response.data.data)
 			})
-			.catch(error => console.log(error.message))
-		},
-		// Update Tickets in Store
-		updateTickets() {
-			this.selectedTickets.forEach(ticket => Vue.set(ticket, 'event', { id: this.event }))
-			let tickets = {
-				index: this.$vnode.key - 1,
-				tickets: this.selectedTickets
-			}
-			store.dispatch("setTickets", tickets)
+			.catch(error => alert(error.message))
 		},
 	},
 	computed: {
+    tickets: {
+      set(tickets) { this.$store.dispatch("setTickets", tickets) },
+      get() { return this.$store.getters.ticket }
+    },
+    selectedTickets() {
+      return this.$store.getters.selectedTickets
+    },
     eventOptions: {
-      set(eventOptions) { store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions }) },
+      set(eventOptions) { this.$store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions }) },
       get() { return store.getters.eventOptions[this.$vnode.key - 1] }
     },
     ticketOptions: {
-      set(ticketOptions) { store.dispatch("setTicketOptions", { index: this.$vnode.key, ticketOptions }) },
-      get() { return store.getters.ticketOptions[this.$vnode.key - 1] }
-    },
-    selectedTickets: {
-      set(selectedTickets) {
-        selectedTickets.forEach(ticket => Vue.set(ticket, 'event', { id: this.event }))
-        store.dispatch("setTickets", { index: this.$vnode.key, tickets: selectedTickets })
-      },
-      get() { return store.getters.tickets[this.$vnode.key - 1] }
+      set(ticketOptions) { store.dispatch("setTicketOptions", ticketOptions) },
+      get() { return store.getters.ticketOptions }
     },
     date: {
       set(date) { store.dispatch("setDate", { index: this.$vnode.key - 1, date: date }) },
@@ -634,15 +654,18 @@ const EventForm = Vue.component("event-form", {
 			get() { return this.$store.getters.events[this.$vnode.key - 1] }
 		}
   },
-  created() {
+  async created() {
+    await this.fetchTicketsTypes()
     // If this event has been defined in store, dispatch and get what's stored in state
     if (store.getters.dates[this.$vnode.key -1]) {
-      this.fetchEvents()
+      await this.fetchEvents()
+      await this.fetchSaleTickets() // FIGURE OUT A WAY SO THAT THIS DOES NOT LOAD ON CREATE ROUTE
     } else { // If not, set defaults
       this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
       this.eventOptions  = []
       this.ticketOptions = []
-      this.fetchTickets()
+      
+      //await this.fetchSaleTickets()
     }
     
 	},
@@ -870,7 +893,19 @@ const SalesForm = Vue.component("sales-form", {
           this.paid = sale.payments.reduce((total, payment) => total + parseFloat(payment.total), 0)
           // Setting payments
           this.payments = sale.payments
-          // Setting number of events
+          // Setting events in store
+          sale.events.forEach((event, i) => {
+            // Setting events in store
+            this.$store.dispatch("setEvent", { index: i, event_id: event.id })
+            // Setting event dates in store
+            this.$store.dispatch("setDate", { index: i, date: this.format(new Date(event.start), this.$dateFormat.short) })
+            // Setting tickets
+            //event.tickets.forEach(ticket => Vue.set(ticket, 'event', { id: event.id }))
+            //selectedTickets.forEach(ticket => Vue.set(ticket, 'event', { id: this.event }))
+            //let tickets = event.tickets.map(ticket => ticket.id)
+            //this.$store.dispatch("setTickets", tickets)
+          })
+
           // response.data.events.forEach(event => context.commit("SET_NUMBER_OF_EVENTS"))
           
           // Setting payments

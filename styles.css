@@ -46,7 +46,7 @@ textarea {
 }
 
 .meta > .ui.label > .detail {
-  margin-top: 6px !important;
+  /*margin-top: 6px !important;*/
 }
 
 .list-enter-active, .list-leave-active {

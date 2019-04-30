@@ -23,7 +23,7 @@
   <!-- Root component -->
   <div id="app">
     <transition mode="out-in" name="fade">
-      <router-view></router-view>
+      <router-view :key="$route.path"></router-view>
     </transition>
   </div>
   
@@ -120,7 +120,7 @@
                       <div id="events">
                         <transition-group mode="out-in" name="fade">
                           <event-form v-if="(customer != null)" 
-                          v-for="n in numberOfEvents" 
+                          v-for="(n, i) in numberOfEvents" 
                           :key="n"  
                           :cashier="{ id: 3 }"
                           :type="type || 2"
@@ -417,12 +417,12 @@
                           multiple 
                           placeholder="Select tickets"
                           :options="ticketOptions"
-                          v-model="selectedTickets"
+                          v-model="tickets"
             />
           </div>
       </transition>
       <transition mode="out-in" name="fade">
-        <div id="tickets" v-if="selectedTickets">
+        <div id="tickets" v-if="selectedTickets  && selectedTickets.length > 0">
           <table class="ui selectable single line very compact table">
             <thead>
               <tr class="header">
@@ -961,10 +961,8 @@
         </div>
         <div class="meta" v-if="sale.products.length > 0">
           <div class="ui label" v-for="product in sale.products">
-            <i class="box icon"></i>
-            {{ product.name }}
-            <div class="detail" v-if="product.quantity">
-              {{ product.quantity }}
+            <i class="box icon"></i>{{ product.name }}<div class="detail">
+              {{ sale.products.filter(p => p == product).length }}
             </div>
           </div>
         </div>
