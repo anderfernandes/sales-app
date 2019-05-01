@@ -32,12 +32,12 @@
     <div>
       <modal></modal>
       <transition name="fade" mode="out-in">
-        <sui-dimmer v-if="isLoading" active inverted>
+        <sui-dimmer v-if="false" active inverted>
           <sui-loader content="Loading..."></sui-loader>
         </sui-dimmer>
       </transition>
       <transition name="fade" mode="out-in">
-        <div id="form" v-if="!isLoading">
+        <div id="form" v-if="true">
           <!--- Buttons --->
           <div class="ui grid">
             <div class="ui sixteen wide column" id="top">

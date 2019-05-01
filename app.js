@@ -56,10 +56,7 @@ Vue.mixin({
 
 Vue.prototype.$dateFormat = dateFormat
 
-// Vuex global store
-const store = new Vuex.Store({
-	// alias to data in vue
-	state: {
+const getDefaultState = () => ({
 		creator_id        : 3,
 		settings          : [],
     events            : [],
@@ -121,10 +118,18 @@ const store = new Vuex.Store({
     currencySettings  : {
 			minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }
-	},
+	  },
+})
+
+// Vuex global store
+const store = new Vuex.Store({
+	// alias to data in vue
+	state: getDefaultState(),
 	// ??
 	mutations: {
+    RESET(state) {
+      Object.assign(state, getDefaultState)
+    },
     SET_PAID(state, amount) {
       state.paid = amount
     },
@@ -186,11 +191,19 @@ const store = new Vuex.Store({
 					(total + (product.amount * product.price)), 0
 				)
 
-			// Calculating ticket totals
+      // Calculating ticket totals
       if (state.tickets.length > 0)
+        state.selectedTickets.forEach(eventTickets => {
+          ticketTotals += eventTickets.reduce((total, ticket) => 
+            (total + (ticket.amount * ticket.price)), 0
+          )
+        })
+
+      /*if (state.tickets.length > 0)
         ticketTotals =  state.selectedTickets.reduce((total, ticket) =>
           (total + (ticket.amount * ticket.price)), 0
-        )
+        )*/
+
 
 			state.subtotal = productTotals + ticketTotals
 		},
@@ -261,22 +274,32 @@ const store = new Vuex.Store({
     SET_SELECTED_PRODUCTS(state, selectedProducts) {
       Vue.set(state, "selectedProducts", selectedProducts)
     },
-    SET_TICKETS(state, tickets) {
+    SET_TICKETS(state, payload) {
 
-      console.log(tickets, "SET_TICKETS")
+      // payload: object with event index and tickets
 
-      state.tickets         = tickets
-      state.selectedTickets = []
+      //console.log(payload, "SET_TICKETS")
 
-      state.tickets.forEach(ticket_id => {
+      //state.tickets         = tickets
+      //state.selectedTickets = []
+      
+      // Set tickets for the event
+      state.tickets.splice(payload.index, 1, payload.tickets)
+      // Reset selected tickets so that we can add them again
+      let selectedTickets = []
+      state.selectedTickets.splice(payload.index, 1, selectedTickets)
+
+      state.tickets[payload.index].forEach(ticket_id => {
         let t = state.availableTickets.find(ticket => ticket.id == ticket_id)
-        state.selectedTickets.push(t)
+        selectedTickets.push(t)
       })
+      console.log(selectedTickets)
+      // state.selectedTickets.splice(payload.index, 1, selectedTickets)
 			//state.tickets.splice(payload.index, 1, payload.tickets)
     },
     SET_TICKET_OPTIONS(state, tickets) {
 
-      console.log(tickets,  "SET_TICKET_OPTIONS")
+      //console.log(tickets,  "SET_TICKET_OPTIONS")
 
       let ticketOptions = tickets.map(ticket => ({
         key   : ticket.id,
@@ -381,6 +404,9 @@ const store = new Vuex.Store({
 	},
 	// alias to methods in vue
 	actions: {
+    reset(context) {
+      context.commit("RESET")
+    },
     setPayments(context, payments) {
       context.commit("SET_PAYMENTS", payments)
     },
@@ -393,8 +419,8 @@ const store = new Vuex.Store({
     setPaid(context, amount) {
       context.commit("SET_PAID", amount)
     },
-    setTickets(context, tickets) {
-      context.commit("SET_TICKETS", tickets)
+    setTickets(context, payload) {
+      context.commit("SET_TICKETS", payload)
     },
     setActiveTab(context, index) {
       context.commit("SET_ACTIVE_TAB", index)
@@ -610,7 +636,7 @@ const EventForm = Vue.component("event-form", {
         let tickets = response.data.events[this.$vnode.key - 1].tickets.map(ticket => ticket.id)
         this.tickets = tickets
       })
-      .catch(error => alert(error.message))
+      .catch(error => alert(`Error in fetchSaleTickets: ${error.message}`))
     },
 		// Fetch Tickets Types
 		fetchTicketsTypes() {
@@ -630,11 +656,11 @@ const EventForm = Vue.component("event-form", {
               : `${ this.eventOptions.length } ${ this.eventOptions.length == 1 ? 'event' : 'events'} found` 
     },
     tickets: {
-      set(tickets) { this.$store.dispatch("setTickets", tickets) },
-      get() { return this.$store.getters.ticket }
+      set(tickets) { this.$store.dispatch("setTickets", {index: this.$vnode.key - 1, tickets}) },
+      get() { return this.$store.getters.ticket[ this.$vnode.key - 1 ] }
     },
     selectedTickets() {
-      return this.$store.getters.selectedTickets
+      return this.$store.getters.selectedTickets[ this.$vnode.key - 1 ]
     },
     eventOptions: {
       set(eventOptions) { this.$store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions }) },
@@ -661,17 +687,19 @@ const EventForm = Vue.component("event-form", {
   },
   async created() {
     await this.fetchTicketsTypes()
-    // If this event has been defined in store, dispatch and get what's stored in state
-    if (store.getters.dates[this.$vnode.key -1]) {
-      await this.fetchEvents()
+    if (this.$route.name == "edit") {
       await this.fetchSaleTickets() // FIGURE OUT A WAY SO THAT THIS DOES NOT LOAD ON CREATE ROUTE
-    } else { // If not, set defaults
+      await this.fetchEvents()
+      
+
+    } else if (this.$route.name == "create") {
       this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
       this.eventOptions  = []
       this.ticketOptions = []
       
-      //await this.fetchSaleTickets()
+      
     }
+    
     
 	},
 	mounted() {
@@ -701,7 +729,7 @@ const SalesForm = Vue.component("sales-form", {
       this.fetchSale()
   },
   beforeMount() {
-
+    this.$store.dispatch("reset") 
   },
 	updated() {
     this.$store.dispatch("calculateTotals")
@@ -1069,7 +1097,9 @@ const Show = Vue.component("show", {
 })
 
 // Update Page
-const Edit = Vue.component("update", { template: "#edit" })
+const Edit = Vue.component("update", { 
+  template: "#edit",
+})
 
 // Defining routes
 const routes = [
