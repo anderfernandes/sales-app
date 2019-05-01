@@ -278,7 +278,7 @@ const store = new Vuex.Store({
 
       // payload: object with event index and tickets
 
-      //console.log(payload, "SET_TICKETS")
+      console.log(payload, "SET_TICKETS")
 
       //state.tickets         = tickets
       //state.selectedTickets = []
@@ -293,7 +293,6 @@ const store = new Vuex.Store({
         let t = state.availableTickets.find(ticket => ticket.id == ticket_id)
         selectedTickets.push(t)
       })
-      console.log(selectedTickets)
       // state.selectedTickets.splice(payload.index, 1, selectedTickets)
 			//state.tickets.splice(payload.index, 1, payload.tickets)
     },
@@ -310,22 +309,39 @@ const store = new Vuex.Store({
 
       Vue.set(state, "ticketOptions", ticketOptions)
 
-      let availableTickets = tickets.map(ticket => ({
-        id          : ticket.id,
-        amount      : 0,
-        name        : ticket.name,
-        description : ticket.description,
-        type        : ticket.type,
-        price       : ticket.price,
-        event       : ticket.event,
-      }))
-
+      /*
+      let availableTickets = tickets.map(ticket => {
+        console.log(ticket.amount)
+        let amount = ticket.amount || 0
+        return {
+          id          : ticket.id,
+          amount      : amount,
+          name        : ticket.name,
+          description : ticket.description,
+          type        : ticket.type,
+          price       : ticket.price,
+          event       : ticket.event,
+        }
+      })
+      
       Vue.set(state, "availableTickets", availableTickets)
-
+      */
       //Vue.set(state.ticketOptions, payload.index, payload.ticketOptions)
     },
-    SET_SELECTED_TICKETS(state, selectedTickets) {
-      Vue.set(state, "selectedTickets", selectedTickets)
+    SET_AVAILABLE_TICKETS(state, tickets) {
+      let availableTickets = tickets.map(ticket => {
+        let amount = ticket.amount || 0
+        return {
+          id          : ticket.id,
+          amount      : amount,
+          name        : ticket.name,
+          description : ticket.description,
+          type        : ticket.type,
+          price       : ticket.price,
+          event       : ticket.event,
+        }
+      })
+      Vue.set(state, "availableTickets", availableTickets)
     },
 		SET_REFERENCE(state, reference) {
 			state.reference = reference
@@ -406,6 +422,9 @@ const store = new Vuex.Store({
 	actions: {
     reset(context) {
       context.commit("RESET")
+    },
+    setAvailableTickets(context, tickets) {
+      context.commit("SET_AVAILABLE_TICKETS", tickets)
     },
     setPayments(context, payments) {
       context.commit("SET_PAYMENTS", payments)
@@ -488,94 +507,90 @@ const store = new Vuex.Store({
 		setReference(context, reference) {
 			context.commit("SET_REFERENCE", reference)
 		},
-		fetchSettings(context) {
-			axios
-				.get("http://10.51.136.173:8000/api/settings")
-				.then(response => {
-					let tax = parseFloat(response.data.tax) / 100
-					context.commit('SET_SETTINGS', { tax: tax })
-					context.commit('HAS_SETTINGS', true)
-					//context.commit('SET_IS_LOADING')
-				})
+		async fetchSettings(context) {
+      try {
+        const response = await axios.get("http://10.51.136.173:8000/api/settings")
+        let tax = parseFloat(response.data.tax) / 100
+        await context.commit('SET_SETTINGS', { tax: tax })
+        await context.commit('HAS_SETTINGS', true)
+      } catch (error) {
+        alert(`Error in actions.fetchSettings: ${ error.message }`)
+      }
 		},
-		fetchPaymentMethods(context) {
-			axios
-			.get("http://10.51.136.173:8000/api/payment-methods")
-			.then(response => {
-				let paymentMethods = response.data.data.map(payment_method => ({
+		async fetchPaymentMethods(context) {
+      try {
+        const response = await axios.get("http://10.51.136.173:8000/api/payment-methods")
+        let paymentMethods = response.data.data.map(payment_method => ({
 					key  : payment_method.id, 
 					text : payment_method.name,
 					value: payment_method.id,
 					icon : payment_method.icon
 				}))
-				context.commit("SET_PAYMENT_METHODS", paymentMethods)
-				context.commit("HAS_PAYMENT_METHODS", true)
-				//context.commit("SET_IS_LOADING")
-			})
-			.catch(error => alert("Unable to load payment methods."))
+				await context.commit("SET_PAYMENT_METHODS", paymentMethods)
+				await context.commit("HAS_PAYMENT_METHODS", true)
+      } catch (error) {
+        alert(`Error in actions.fetchSettings: ${ error.message }`)
+      }
 		},
-		fetchCustomers(context) {
-			axios
-      	.get("http://10.51.136.173:8000/api/customers")
-        .then(response => {
-					let customerOptions = response.data.map(customer => {
-						let organization = (customer.organization.id != 1)
-															? `, ${customer.organization.name}` : ``
-						return {
-							key : customer.id,
-							text: `${customer.name} (${customer.role}${organization})`,
-							value: customer.id,
-							icon: "user circle",
-							organization: { id: customer.organization.id },
-						}
-					})
-					context.commit("SET_CUSTOMER_OPTIONS", customerOptions)
-					context.commit("HAS_CUSTOMER_OPTIONS", true)
-					//context.commit("SET_IS_LOADING")
-				})
-        .catch(error => alert("Unable to load customers."))
+		async fetchCustomers(context) {
+      try {
+        const response = await axios.get("http://10.51.136.173:8000/api/customers")
+        let customerOptions = response.data.map(customer => {
+          let organization = (customer.organization.id != 1)
+                            ? `, ${customer.organization.name}` : ``
+          return {
+            key : customer.id,
+            text: `${customer.name} (${customer.role}${organization})`,
+            value: customer.id,
+            icon: "user circle",
+            organization: { id: customer.organization.id },
+          }
+        })
+        await context.commit("SET_CUSTOMER_OPTIONS", customerOptions)
+        await context.commit("HAS_CUSTOMER_OPTIONS", true)
+      } catch (error) {
+        alert(`Error in actions.fetchSettings: ${ error.message }`)
+      }
 		},
-		fetchGrades(context) {
-			axios
-				.get("http://10.51.136.173:8000/api/grades")
-				.then(response => {
-					let gradeOptions = response.data.data.map(grade => ({
-						key  : grade.id,
-						text : grade.name,
-						value: grade.id,
-					}))
-					context.commit("SET_GRADE_OPTIONS", gradeOptions)
-					context.commit("HAS_GRADE_OPTIONS", true)
-					//context.commit("SET_IS_LOADING")
-				})
-				.catch(error => alert("Unable to load grades."))
+		async fetchGrades(context) {
+      try {
+        const response = await axios.get("http://10.51.136.173:8000/api/grades")
+        let gradeOptions = response.data.data.map(grade => ({
+          key  : grade.id,
+          text : grade.name,
+          value: grade.id,
+        }))
+        await context.commit("SET_GRADE_OPTIONS", gradeOptions)
+        await context.commit("HAS_GRADE_OPTIONS", true)
+      } catch (error) {
+        alert(`Error in actions.fetchGrades: ${ error.message }`)
+      }
 		},
-		fetchProducts(context) {
-			axios
-				.get("http://10.51.136.173:8000/api/products")
-				.then(response => { 
-					
-					context.commit("SET_PRODUCT_OPTIONS", response.data.data)
-					context.commit("HAS_PRODUCT_OPTIONS", true)
-					context.commit("SET_IS_LOADING")
-				})
-        .catch(error => alert("Unable to load products."))
+		async fetchProducts(context) {
+      try {
+        const response = await axios.get("http://10.51.136.173:8000/api/products")
+        await context.commit("SET_PRODUCT_OPTIONS", response.data.data)
+        await context.commit("HAS_PRODUCT_OPTIONS", true)
+        await context.commit("SET_IS_LOADING")
+      } catch (error) {
+        alert(`Error in actions.fetchProducts: ${ error.message }`)
+      }
     },
-    fetchSales(context) {
-      let errors = {}
-      errors.fetchSales = ["Unable to fetch sales"]
-      axios
-        .get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
-        .then(response => context.commit("SET_SALES", response.data.data))
-        .catch(error => context.commit("SET_ERRORS", errors))
+    async fetchSales(context) {
+      try {
+        const response = await axios.get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
+        await context.commit("SET_SALES", response.data.data)
+      } catch (error) {
+        alert(`Error in actions.fetchSales: ${ error.message }`)
+      }
     },
-    fetchEventTypes(context) {
-      let errors = {}
-      errors.fetchEventTypes = ["Unable to fetch event types"]
-      axios
-        .get("http://10.51.136.173:8000/api/event-types")
-        .then(response => context.commit("SET_EVENT_TYPES", response.data))
-        .catch(error => context.commit("SET_ERRORS", errors))
+    async fetchEventTypes(context) {
+      try {
+        const response = await axios.get("http://10.51.136.173:8000/api/event-types")
+        context.commit("SET_EVENT_TYPES", response.data)
+      } catch (error) {
+        alert(`Error in actions.fetchEventTypes: ${ error.message }`)
+      }
     },
 	},
 })
@@ -608,45 +623,48 @@ const EventForm = Vue.component("event-form", {
 			defaultDate: "today",
     },
     event_type: null,
+    isLoading: true,
 	}),
 	methods: {
 		// Fetch Events
-		fetchEvents() {
-			let date = dateFns.format(new Date(this.date), "YYYY-MM-DD")
-			axios
-				.get(`http://10.51.136.173:8000/api/events?start=${date}&type=${this.event_type || this.type}`)
-				.then(response => {
-					let eventOptions = response.data.map(event => {
-						let time = dateFns.format(new Date(event.start), "h:mm aa")
-						return {
-							key  : event.id,
-							text : `${event.show.id == 1 ? event.memo : event.show.name} at ${time}`,
-							value: event.id,
-						}
-          })
-          store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions: eventOptions})
-				})
-				.catch(error => alert("Unable to query available events."))
+		async fetchEvents() {
+      let date = dateFns.format(new Date(this.date), "YYYY-MM-DD")
+      try {
+        const response = await axios.get(`http://10.51.136.173:8000/api/events?start=${date}&type=${this.event_type || this.type}`)
+        let eventOptions = response.data.map(event => {
+          let time = dateFns.format(new Date(event.start), "h:mm aa")
+          return {
+            key  : event.id,
+            text : `${event.show.id == 1 ? event.memo : event.show.name} at ${time}`,
+            value: event.id,
+          }
+        })
+        await this.$store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions: eventOptions})
+      } catch (error) {
+        alert(`fetchEvents in EventForm failed: ${ error.message }`)
+      }
     },
     // Fetch Sale Tickets
-    fetchSaleTickets() {
-      axios
-      .get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
-      .then(response => {
+    async fetchSaleTickets() {
+      try {
+        const response = await axios.get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
         let tickets = response.data.events[this.$vnode.key - 1].tickets.map(ticket => ticket.id)
+        //await this.$store.dispatch("setSelectedTickets", tickets)
         this.tickets = tickets
-      })
-      .catch(error => alert(`Error in fetchSaleTickets: ${error.message}`))
+        
+      } catch (error) {
+        alert(`fetchSaleTickets in EventForm failed: ${error.message}`)
+      }
     },
 		// Fetch Tickets Types
-		fetchTicketsTypes() {
-			axios
-			.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.event_type || this.type}`)
-			.then(response => {
+		async fetchTicketsTypes() {
+      try {
+        const response = await axios.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.event_type || this.type}`)
         this.ticketOptions = response.data.data
-				//this.$store.dispatch("setTicketOptions", response.data.data)
-			})
-			.catch(error => alert(error.message))
+        //this.$store.dispatch("setAvailableTickets", response.data.data) // CHECK THIS!!!
+      } catch (error) {
+        alert(`fetchTicketTypes in EventForm failed: ${error.message}`)
+      }
 		},
 	},
 	computed: {
@@ -655,32 +673,35 @@ const EventForm = Vue.component("event-form", {
               ? 'No events found' 
               : `${ this.eventOptions.length } ${ this.eventOptions.length == 1 ? 'event' : 'events'} found` 
     },
-    tickets: {
-      set(tickets) { this.$store.dispatch("setTickets", {index: this.$vnode.key - 1, tickets}) },
-      get() { return this.$store.getters.ticket[ this.$vnode.key - 1 ] }
-    },
     selectedTickets() {
       return this.$store.getters.selectedTickets[ this.$vnode.key - 1 ]
     },
     eventOptions: {
-      set(eventOptions) { this.$store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions }) },
+      async set(eventOptions) { await this.$store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions }) },
       get() { return store.getters.eventOptions[this.$vnode.key - 1] }
     },
+    tickets: {
+      set(tickets) { 
+        this.$store.dispatch("setTickets", {index: this.$vnode.key - 1, tickets}) 
+      },
+      get() { 
+        return this.$store.getters.ticket[ this.$vnode.key - 1 ] 
+      }
+    },
     ticketOptions: {
-      set(ticketOptions) { store.dispatch("setTicketOptions", ticketOptions) },
+      set(ticketOptions) { 
+        this.$store.dispatch("setTicketOptions", ticketOptions) 
+      },
       get() { return store.getters.ticketOptions }
     },
     date: {
-      set(date) { store.dispatch("setDate", { index: this.$vnode.key - 1, date: date }) },
+      async set(date) { await this.$store.dispatch("setDate", { index: this.$vnode.key - 1, date: date }) },
       get() { return store.getters.dates[this.$vnode.key -1] }
     },
 		event: {
-			set(event_id) { 
-				let event = {
-					index: this.$vnode.key - 1,
-					event_id: event_id,
-				}
-				this.$store.dispatch("setEvent", event) 
+			async set(event_id) { 
+				let event = { index: this.$vnode.key - 1, event_id: event_id }
+				await this.$store.dispatch("setEvent", event) 
 			},
 			get() { return this.$store.getters.events[this.$vnode.key - 1] }
 		}
@@ -688,27 +709,16 @@ const EventForm = Vue.component("event-form", {
   async created() {
     await this.fetchTicketsTypes()
     if (this.$route.name == "edit") {
-      await this.fetchSaleTickets() // FIGURE OUT A WAY SO THAT THIS DOES NOT LOAD ON CREATE ROUTE
       await this.fetchEvents()
+      await this.fetchSaleTickets()
       
-
     } else if (this.$route.name == "create") {
       this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
-      this.eventOptions  = []
-      this.ticketOptions = []
-      
-      
     }
-    
-    
+    this.isLoading = false
 	},
-	mounted() {
-    //this.fetchEvents()
-    //this.fetchTickets()
-	},
-	
-	updated() {
-		this.$store.dispatch('calculateTotals')
+	async updated() {
+		await this.$store.dispatch("calculateTotals")
 	}
 })
 
@@ -717,22 +727,22 @@ const SalesForm = Vue.component("sales-form", {
   props: ["type"],
   template: "#sales-form",
   components: { EventForm },
-  created() {
-		this.$store.dispatch("fetchSettings")
-		this.$store.dispatch("fetchCustomers")
-		this.$store.dispatch("fetchGrades")
-		this.$store.dispatch("fetchProducts")
-		this.$store.dispatch("fetchPaymentMethods")
+  async created() {
+		await this.$store.dispatch("fetchSettings")
+		await this.$store.dispatch("fetchCustomers")
+		await this.$store.dispatch("fetchGrades")
+		await this.$store.dispatch("fetchProducts")
+		await this.$store.dispatch("fetchPaymentMethods")
     //console.log(this.$vnode.key)
     // Fetch payments if a sale exists?
     if (this.$route.params.id)
-      this.fetchSale()
+      await this.fetchSale()
   },
-  beforeMount() {
-    this.$store.dispatch("reset") 
+  async beforeMount() {
+    await this.$store.dispatch("reset") 
   },
-	updated() {
-    this.$store.dispatch("calculateTotals")
+	async updated() {
+    await this.$store.dispatch("calculateTotals")
 	},
 	computed: {
     selectedProducts: {
@@ -890,13 +900,12 @@ const SalesForm = Vue.component("sales-form", {
 	},
   methods: {
     // Fetch Sale
-    fetchSale() {
+    async fetchSale() {
       let errors = {}
       errors.fetchSale = ["Unable to fetch sale"]
-      axios
-        .get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
-        .then(response => {
-          let sale = response.data
+      try {
+        const response = await axios.get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
+        let sale = response.data
           // Set sell to
           this.sellTo = sale.sell_to_organization ? 1 : 0
           // Set grades
@@ -932,29 +941,10 @@ const SalesForm = Vue.component("sales-form", {
             this.$store.dispatch("setEvent", { index: i, event_id: event.id })
             // Setting event dates in store
             this.$store.dispatch("setDate", { index: i, date: this.format(new Date(event.start), this.$dateFormat.short) })
-            // Setting tickets
-            //event.tickets.forEach(ticket => Vue.set(ticket, 'event', { id: event.id }))
-            //selectedTickets.forEach(ticket => Vue.set(ticket, 'event', { id: this.event }))
-            //let tickets = event.tickets.map(ticket => ticket.id)
-            //this.$store.dispatch("setTickets", tickets)
           })
-
-          // response.data.events.forEach(event => context.commit("SET_NUMBER_OF_EVENTS"))
-          
-          // Setting payments
-          //context.commit("SET_PAYMENTS", response.data.payments)
-          // Set products
-          //context.commit("SET_PRODUCTS", response.data.products)
-          
-          
-          // Set creator
-          //context.commit("SET_CREATOR_ID", response.data.creator.id)
-          // Set events
-          /*response.data.events.forEach((event, index) => context.commit("SET_EVENTS", {
-            index: index, event_id: event.id
-          }))*/
-        })
-        .catch(error => alert(error.message))
+      } catch (error) {
+        alert(`fetchSale in SaleForm failed: ${ error.message }`)
+      }
     },
 		// Add a new event form for another event
 		addEvent(event) {
