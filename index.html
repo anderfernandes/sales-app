@@ -407,7 +407,8 @@
         <sui-dropdown fluid selection direction="upward"
                       :options="eventOptions"
                       v-model="event"
-                      :placeholder="eventOptions.length == 0 ? 'No events found' : `${eventOptions.length} ${eventOptions.length == 1 ? 'event' : 'events'} found` "
+                      v-if="eventOptions"
+                      :placeholder="placeholderMessage"
         />
       </div>
       <transition mode="out-in" name="fade">

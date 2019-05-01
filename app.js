@@ -624,6 +624,11 @@ const EventForm = Vue.component("event-form", {
 		},
 	},
 	computed: {
+    placeholderMessage() {
+      return (this.eventOptions) && (this.eventOptions.length == 0) 
+              ? 'No events found' 
+              : `${ this.eventOptions.length } ${ this.eventOptions.length == 1 ? 'event' : 'events'} found` 
+    },
     tickets: {
       set(tickets) { this.$store.dispatch("setTickets", tickets) },
       get() { return this.$store.getters.ticket }
