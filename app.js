@@ -276,10 +276,6 @@ const store = new Vuex.Store({
     },
     SET_TICKETS(state, payload) {
 
-      // payload: object with event index and tickets
-
-      console.log(payload, "SET_TICKETS")
-
       //state.tickets         = tickets
       //state.selectedTickets = []
       
@@ -293,7 +289,7 @@ const store = new Vuex.Store({
         let t = state.availableTickets.find(ticket => ticket.id == ticket_id)
         selectedTickets.push(t)
       })
-      // state.selectedTickets.splice(payload.index, 1, selectedTickets)
+      state.selectedTickets.splice(payload.index, 1, selectedTickets)
 			//state.tickets.splice(payload.index, 1, payload.tickets)
     },
     SET_TICKET_OPTIONS(state, tickets) {
@@ -342,6 +338,15 @@ const store = new Vuex.Store({
         }
       })
       Vue.set(state, "availableTickets", availableTickets)
+    },
+    // USE THIS ONLY TO UPDATE AMOUNT OF TICKETS WHEN EDITING, NEVER ON CREATING A SALE!!!
+    UPDATE_SELECTED_TICKETS(state, payload) {
+      let selectedTickets = payload.tickets.forEach(ticket => {
+        let amount = ticket.amount || 0
+        Vue.set(ticket, "amount", amount)
+      })
+      console.log(payload.tickets)
+      state.selectedTickets.splice(payload.index, 1, payload.tickets)
     },
 		SET_REFERENCE(state, reference) {
 			state.reference = reference
@@ -422,6 +427,9 @@ const store = new Vuex.Store({
 	actions: {
     reset(context) {
       context.commit("RESET")
+    },
+    updateSelectedTickets(context, payload) {
+      context.commit("UPDATE_SELECTED_TICKETS", payload)
     },
     setAvailableTickets(context, tickets) {
       context.commit("SET_AVAILABLE_TICKETS", tickets)
@@ -651,7 +659,10 @@ const EventForm = Vue.component("event-form", {
         let tickets = response.data.events[this.$vnode.key - 1].tickets.map(ticket => ticket.id)
         //await this.$store.dispatch("setSelectedTickets", tickets)
         this.tickets = tickets
-        
+        // Send already existing ticket amounts to store
+        tickets = response.data.events[this.$vnode.key - 1].tickets
+        await this.$store.dispatch("setAvailableTickets", tickets)
+        await this.$store.dispatch("updateSelectedTickets", {index: this.$vnode.key - 1, tickets})
       } catch (error) {
         alert(`fetchSaleTickets in EventForm failed: ${error.message}`)
       }
@@ -661,7 +672,6 @@ const EventForm = Vue.component("event-form", {
       try {
         const response = await axios.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.event_type || this.type}`)
         this.ticketOptions = response.data.data
-        //this.$store.dispatch("setAvailableTickets", response.data.data) // CHECK THIS!!!
       } catch (error) {
         alert(`fetchTicketTypes in EventForm failed: ${error.message}`)
       }
@@ -691,6 +701,7 @@ const EventForm = Vue.component("event-form", {
     ticketOptions: {
       set(ticketOptions) { 
         this.$store.dispatch("setTicketOptions", ticketOptions) 
+        this.$store.dispatch("setAvailableTickets", ticketOptions)
       },
       get() { return store.getters.ticketOptions }
     },
