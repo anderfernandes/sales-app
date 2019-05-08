@@ -103,8 +103,13 @@
                                       v-model="customer"
                                       :options="customerOptions"
                                       placeholder="Customer"
-                                      search selection 
-                        />
+                                      search selection></sui-dropdown>
+                        <transition mode="out-in" name="fade">
+                          <sui-label basic color="red" pointing 
+                                      v-if="errors.hasOwnProperty('customer')">
+                            {{ errors.customer[0] }}
+                          </sui-label>
+                        </transition>
                       </sui-form-field>
                       <sui-form-field>
                         <label>Grades</label>
@@ -318,6 +323,12 @@
                               placeholder="Write a memo" 
                               style="margin-bottom:10em"></textarea>
                   </div>
+                  <transition mode="out-in" name="fade">
+                      <sui-label basic color="red" pointing 
+                                  v-if="errors.hasOwnProperty('memo')">
+                        {{ errors.memo[0] }}
+                      </sui-label>
+                    </transition>
                 </div>
               </div>
             </div>
@@ -455,11 +466,13 @@
                 </td>
                 <td>
                   <div class="ui right labeled input">
+                    <input type="hidden">
                     <input type="number" 
                            size="1"
                            min="0"
                            max="180" 
-                           placeholder="Amount" 
+                           placeholder="Amount"
+                           @change="ticket.event = { id: event }" 
                            v-model.number="ticket.amount"
                            >
                     <div class="ui basic label">
@@ -479,15 +492,19 @@
   <!-- Modal Template-->
   <template id="modal">
     <sui-modal v-model="open" basic>
-      <sui-header icon="info circle">Oops...</sui-header>
+      <sui-header icon="info circle" v-if="errors">Oops...</sui-header>
+      <sui-header icon="thumbs up" v-if="message">Alright!</sui-header>
       <sui-modal-content>
-        <sui-modal-description>
+        <sui-modal-description v-if="errors">
           <p>Please fix the following errors and try again.</p>
           <ul>
             <li v-for="(error, index) in errors" :key="index">
               {{ error }}
             </li>
           </ul>
+        </sui-modal-description>
+        <sui-modal-description v-if="message">
+          <p>{{ message }}</p>
         </sui-modal-description>
       </sui-modal-content>
       <sui-modal-actions>
@@ -500,7 +517,7 @@
 
   <template id="index">
     <div class="ui container">
-      
+
       <sui-form>
         <sui-form-fields inline fields="five">
           <sui-form-field>
@@ -535,7 +552,7 @@
       </sui-dimmer>
 
       <transition-group name="list">
-        <div class="ui sale segment" v-for="sale in sales" :key="sale.id" :style="getSaleColor(sale.status)"
+        <div :class="`ui ${sale.status} sale segment`" v-for="sale in sales" :key="sale.id" :style="getSaleColor(sale.status)"
             @click="$router.push({name: 'show', params: { id: sale.id }})">
           <div class="ui items">
             <sale-box :sale="sale" :key="sale.id"></sale-box>
@@ -545,22 +562,23 @@
 
       <sui-modal v-model="open" basic>
           <sui-header icon="info circle">Select the event type</sui-header>
-          <div class="ui four link cards">
-            <div class="card" id="event-type" 
-                 @click="$router.push({ name: 'create', params: { type: event_type.id } })"
-                 v-for="event_type in event_types" :key="event_type.id">
-              <div class="content">
-                <div class="center aligned header">
-                  <div class="ui label" :style="{ backgroundColor: event_type.color, color: 'white' }">
-                    {{ event_type.name }}
-                  </div>
-                </div>
-                <div class="center aligned description">
-                  {{ event_type.description }}
-                </div>
-              </div>
-            </div>
-          </div>
+          <sui-segment :style="{ backgroundColor: event_type.color, color: 'white' }" id="event-type"
+                       @click="$router.push({ name: 'create', params: { type: event_type.id } })"
+                       v-for="event_type in event_types" :key="event_type.id">
+                       <div class="ui inverted small header">
+                          {{ event_type.name }}
+                         <div class="sub header">{{ event_type.description }}</div>
+                         <div class="ui divider"></div>
+                         <div class="sub header">
+                           Available tickets:
+                           <div class="ui label" v-for="ticket in event_type.allowed_tickets"
+                                style="background-color: transparent; border-width: 1px; border-color:white">
+                                <i class="ticket icon"></i> {{ ticket.name }}
+                                <div class="detail">$ {{ parseFloat(ticket.price).toFixed(2) }}</div>
+                           </div>
+                         </div>
+                       </div>
+          </sui-segment>
           <sui-modal-actions>
               <sui-button inverted @click="toggle" icon="close">
                 Close
@@ -575,6 +593,7 @@
 
   <template id="show">
     <div class="ui container">
+        <modal></modal>
       <sui-dimmer v-if="isLoading" active inverted>
         <sui-loader content="Loading..."></sui-loader>
       </sui-dimmer>
@@ -724,7 +743,7 @@
                         <div class="sub header">
                           <div class="ui black label" style="margin-left:0" v-for="ticket in event.tickets">
                             <i class="ticket icon"></i>
-                            {{ ticket.quantity }}
+                            {{ ticket.amount }}
                             <div class="detail">
                               {{ ticket.name }}
                             </div>
@@ -909,7 +928,7 @@
   <template id="sale-box">
     <div class="item">
       <div class="content">
-        <div class="header" style="color: white">
+        <div class="header">
           Sale #{{ sale.id }} 
           <div :class="getSaleLabelColor(sale.status)">
             <i :class="getSaleIcon(sale.status)"></i>
@@ -933,7 +952,7 @@
             </div>
           </div>
         </div>
-        <div class="meta" style="color: white">
+        <div class="meta">
           <i class="user circle icon"></i> 
           {{ sale.creator.firstname }} |
           <i class="pencil icon"></i>      
@@ -955,7 +974,12 @@
                   </div>
                   <div class="content">
                     <div class="meta">
-                      <div class="ui label">{{ event.show.type }}</div>
+                      <div class="ui label" style="border-color: white; background-color: transparent; color: white; border-width: 1px">
+                        {{ event.show.type }}
+                      </div>
+                      <div class="ui event-type label" :style="{ color: 'white', backgroundColor: event.type.color }">
+                        {{ event.type.name }}
+                      </div>
                     </div>
                     <div class="header">{{ event.show.name }}</div>
                     <div class="meta">
@@ -969,7 +993,8 @@
           </div>
         </div>
         <div class="meta" v-if="sale.products.length > 0">
-          <div class="ui label" v-for="product in sale.products">
+          <div class="ui label" v-for="product in sale.products" 
+               style="border-color: white; background-color: transparent; color: white; border-width: 1px">
             <i class="box icon"></i>{{ product.name }}<div class="detail">
               {{ sale.products.filter(p => p == product).length }}
             </div>

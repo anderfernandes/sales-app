@@ -112,6 +112,7 @@ const getDefaultState = () => ({
     hasProductOptions : false,
     errors            : {},
     showModal         : false,
+    message           : "",
     activeTab         : 0,
     paid              : 0,
     event_types       : [],
@@ -128,6 +129,9 @@ const store = new Vuex.Store({
 	state: getDefaultState(),
 	// ??
 	mutations: {
+    SET_MESSAGE(state, message) {
+      state.message = message
+    },
     RESET(state) {
       Object.assign(state, getDefaultState)
     },
@@ -276,7 +280,6 @@ const store = new Vuex.Store({
       Vue.set(state, "selectedProducts", selectedProducts)
     },
     SET_TICKETS(state, payload) {
-
       //state.tickets         = tickets
       //state.selectedTickets = []
       
@@ -290,8 +293,8 @@ const store = new Vuex.Store({
         let t = state.availableTickets.find(ticket => ticket.id == ticket_id)
         selectedTickets.push(t)
       })
+
       state.selectedTickets.splice(payload.index, 1, selectedTickets)
-			//state.tickets.splice(payload.index, 1, payload.tickets)
     },
     SET_TICKET_OPTIONS(state, tickets) {
 
@@ -423,9 +426,13 @@ const store = new Vuex.Store({
     sale             : state => state.sale,
     selectedProducts : state => state.selectedProducts,
     selectedTickets  : state => state.selectedTickets,
+    message          : state => state.message,
 	},
 	// alias to methods in vue
 	actions: {
+    setMessage(context, message) {
+      context.commit("SET_MESSAGE", message)
+    },
     reset(context) {
       context.commit("RESET")
     },
@@ -612,6 +619,9 @@ const Modal = Vue.component("modal", {
       set() { store.dispatch("setShowModal") },
       get() { return store.getters.showModal }
     },
+    message() {
+      return this.$store.getters.message
+    },
     errors() {
       let errors = []
       Object.values(this.$store.getters.errors).forEach(errorMessages => {
@@ -619,6 +629,10 @@ const Modal = Vue.component("modal", {
       })
       return errors
     },
+  },
+  beforeDestroyed() {
+    this.$store.dispatch("setMessage", "")
+    this.$store.dispatch("setErrors", {})
   },
 })
 
@@ -693,7 +707,11 @@ const EventForm = Vue.component("event-form", {
     },
     tickets: {
       set(tickets) { 
-        this.$store.dispatch("setTickets", {index: this.$vnode.key - 1, tickets}) 
+        this.$store.dispatch("setTickets", {
+          event: { id: this.event },
+          index: this.$vnode.key - 1, 
+          tickets
+        }) 
       },
       get() { 
         return this.$store.getters.ticket[ this.$vnode.key - 1 ] 
@@ -887,22 +905,35 @@ const SalesForm = Vue.component("sales-form", {
     isValid() {
       let errors = {}
       // Sell To Error Checking
-      if (!this.sellTo)
+      if (this.sellTo == null)
         errors.sellTo = ["Select if this sale is for the customer you selected or the organization they work for."]
-      else if (this.sellTo.length < 2)
-        errors.sellTo = ["Reference must have at least 2 numbers"]
       else 
         delete errors.sellTo
-      // Change Due error Checking
+      
+      // Checking if sale has a customer
+      if (this.customer == null)
+        errors.customer = ["Select a customer from the dropdown list."]
+      else
+        delete errors.customer
+        
+      // Making sure a sale has a memo
+      if (this.memo = "" && this.$route.name == "edit")
+        errors.memo = ["Leave a memo explaining why you are changing this sale."]
+      else
+        delete errors.memo
+      
+      // Change Due error checking
       if (parseFloat(this.change_due) < 0)
         errors.change_due = ["Change due must be greater or equal to zero."]
       else 
         delete errors.change_due
+      
       // Tendered error checking
       if (parseFloat(this.tendered) < 0)
         errors.tendered = ["Tendered must be a positive number."]
       else 
         delete errors.tendered
+      
       // Reference error checking
       if ((this.paymentMethod != 1) && (this.reference.length == 0))
         errors.reference = ["You must leave a reference if the customer not paying with cash."]
@@ -972,7 +1003,8 @@ const SalesForm = Vue.component("sales-form", {
 				// Customer 
 				customer     : this.$store.getters.customer,
 				// Cashier
-				creator_id   : this.$store.getters.creator_id,
+        // creator_id   : this.$store.getters.creator_id,
+        creator_id   : 3,
 				// Sale Data
 				saleStatus   : this.$store.getters.saleStatus,
 				taxable      : this.$store.getters.taxable,
@@ -986,9 +1018,9 @@ const SalesForm = Vue.component("sales-form", {
 				change_due   : this.$store.getters.change_due,
 				reference    : this.$store.getters.reference,
 				// Ticket Data
-				tickets      : this.$store.getters.tickets,
+				tickets      : this.$store.getters.selectedTickets,
 				// Products Data
-				products     : this.$store.getters.products,
+				products     : this.$store.getters.selectedProducts,
 				// Event Data
 				events       : this.$store.getters.events,
 				// Grades Data 
@@ -997,18 +1029,18 @@ const SalesForm = Vue.component("sales-form", {
 				memo         : this.$store.getters.memo,
 			}
       console.log(request)
-      /*if (this.isValid)
+      if (this.isValid)
       {
         try {
-          const response = await axios.post(`${SERVER}/api/sales`)
-          const sale      = response.data.data
+          const response = await axios.post(`${SERVER}/api/sales`, request)
+          const sale      = response.data.data.sale
           this.$router.push({ name: "show", params: { id: sale.id } })
         } catch(error) {
           alert(`Unable to save this sale at this time: ${error}`)
         }
       } else {
         this.$store.dispatch("setShowModal")
-      }*/
+      }
 		}
   },
 })

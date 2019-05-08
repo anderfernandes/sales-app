@@ -18,16 +18,17 @@ textarea {
   opacity: 0;
 }
 
-.card#event-type {
+.ui.segment#event-type:hover {
   background-color: transparent !important;
+  border-width: 1px;
+  border-color: white;
+  cursor: pointer;
+  transition: all 1s;
 }
 
-.card#event-type > .content > .description {
-  color: white !important;
-}
-
-.card#event-type:hover {
-  background-color: white !important;
+.ui.segment#event-type {
+  cursor: pointer;
+  transition: all 1s;
 }
 
 .card#event-type:hover > .content > .description {
@@ -45,10 +46,6 @@ textarea {
   cursor: pointer !important;
 }
 
-.meta > .ui.label > .detail {
-  /*margin-top: 6px !important;*/
-}
-
 .list-enter-active, .list-leave-active {
   transition: all 1s;
 }
@@ -60,4 +57,121 @@ textarea {
 
 .ui.sale.segment .header, .ui.sale.segment .meta {
   color: white !important;
+}
+
+/** OPEN SALE STYLES **/
+
+/** Switching color of sale box **/
+.ui.open.sale.segment       { 
+  transition: all 1s;
+  background-color: #6435c9 !important;
+  border: white 1px solid !important;
+}
+
+.ui.open.sale.segment:hover { 
+  transition: all 1s;
+  background-color: white   !important; 
+  border: #6435c9 1px solid !important;
+}
+
+/** Switching text color of sale box **/
+.ui.open.sale.segment .header, 
+.ui.open.sale.segment .meta { 
+  transition: all 1s;
+  color: white !important;
+}
+
+.ui.open.sale.segment:hover .header,
+.ui.open.sale.segment:hover .meta,
+.ui.open.sale.segment:hover .ui.label:not(.violet) { 
+  transition: all 1s;
+  color: #6435c9 !important;
+}
+
+.ui.open.sale.segment:hover .ui.event-type.label {
+  transition: all 1s;
+  color: white !important;
+}
+
+.ui.open.sale.segment:hover .ui.label:not(.event-type) {
+  transition: all 1s;
+  border: #6435c9 1px solid !important;
+}
+
+/** OPEN SALE STYLES **/
+
+/** Switching color of sale box **/
+.ui.complete.sale.segment       { 
+  transition: all 1s;
+  background-color: #21ba45 !important;
+  border: white 1px solid !important;
+}
+
+.ui.complete.sale.segment:hover { 
+  transition: all 1s;
+  background-color: white   !important; 
+  border: #21ba45 1px solid !important;
+}
+
+/** Switching text color of sale box **/
+.ui.complete.sale.segment .header, 
+.ui.complete.sale.segment .meta { 
+  transition: all 1s;
+  color: white !important;
+}
+
+.ui.complete.sale.segment:hover .header,
+.ui.complete.sale.segment:hover .meta,
+.ui.complete.sale.segment:hover .ui.label:not(.green) { 
+  transition: all 1s;
+  color: #21ba45 !important;
+}
+
+.ui.complete.sale.segment:hover .ui.event-type.label {
+  transition: all 1s;
+  color: white !important;
+}
+
+.ui.complete.sale.segment:hover .ui.label:not(.event-type) {
+  transition: all 1s;
+  border: #21ba45 1px solid !important;
+}
+
+/** TENTATIVE SALE STYLES **/
+
+/** Switching color of sale box **/
+.ui.tentative.sale.segment       { 
+  transition: all 1s;
+  background-color: #fbbd08 !important;
+  border: white 1px solid !important;
+}
+
+.ui.tentative.sale.segment:hover { 
+  transition: all 1s;
+  background-color: white   !important; 
+  border: #fbbd08 1px solid !important;
+}
+
+/** Switching text color of sale box **/
+.ui.tentative.sale.segment .header, 
+.ui.tentative.sale.segment .meta { 
+  transition: all 1s;
+  color: white !important;
+}
+
+.ui.tentative.sale.segment:hover .header,
+.ui.tentative.sale.segment:hover .meta,
+.ui.tentative.sale.segment:hover .ui.label:not(.yellow) { 
+  transition: all 1s;
+  color: #fbbd08 !important;
+}
+
+.ui.tentative.sale.segment:hover .ui.event-type.label {
+  transition: all 1s;
+  color: white !important;
+}
+
+.ui.tentative.sale.segment:hover .ui.label:not(.event-type) {
+  transition: all 1s;
+  border: #fbbd08 1px solid !important;
 }
