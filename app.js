@@ -1,4 +1,5 @@
-let dateFormat = { long: "dddd, MMMM D, YYYY [at] h:mm a", short: "dddd, MMMM D, YYYY" }
+const dateFormat = { long: "dddd, MMMM D, YYYY [at] h:mm a", short: "dddd, MMMM D, YYYY" }
+const SERVER     = "http://10.51.147.77:8000"
 
 Vue.config.devtools = true // DISABLE THIS IN PRODUCTION
 Vue.use(SemanticUIVue)
@@ -492,7 +493,7 @@ const store = new Vuex.Store({
 			context.commit('SET_TAX')
 		},
 		setTendered(context, tendered) {
-			context.commit("SET_TENDERED")
+			context.commit("SET_TENDERED", tendered)
 		},
 		setPaymentMethod(context, paymentMethod) {
 			context.commit('SET_PAYMENT_METHOD', paymentMethod)
@@ -517,7 +518,7 @@ const store = new Vuex.Store({
 		},
 		async fetchSettings(context) {
       try {
-        const response = await axios.get("http://10.51.136.173:8000/api/settings")
+        const response = await axios.get(`${SERVER}/api/settings`)
         let tax = parseFloat(response.data.tax) / 100
         await context.commit('SET_SETTINGS', { tax: tax })
         await context.commit('HAS_SETTINGS', true)
@@ -527,7 +528,7 @@ const store = new Vuex.Store({
 		},
 		async fetchPaymentMethods(context) {
       try {
-        const response = await axios.get("http://10.51.136.173:8000/api/payment-methods")
+        const response = await axios.get(`${SERVER}/api/payment-methods`)
         let paymentMethods = response.data.data.map(payment_method => ({
 					key  : payment_method.id, 
 					text : payment_method.name,
@@ -542,7 +543,7 @@ const store = new Vuex.Store({
 		},
 		async fetchCustomers(context) {
       try {
-        const response = await axios.get("http://10.51.136.173:8000/api/customers")
+        const response = await axios.get(`${SERVER}/api/customers`)
         let customerOptions = response.data.map(customer => {
           let organization = (customer.organization.id != 1)
                             ? `, ${customer.organization.name}` : ``
@@ -562,7 +563,7 @@ const store = new Vuex.Store({
 		},
 		async fetchGrades(context) {
       try {
-        const response = await axios.get("http://10.51.136.173:8000/api/grades")
+        const response = await axios.get(`${SERVER}/api/grades`)
         let gradeOptions = response.data.data.map(grade => ({
           key  : grade.id,
           text : grade.name,
@@ -576,7 +577,7 @@ const store = new Vuex.Store({
 		},
 		async fetchProducts(context) {
       try {
-        const response = await axios.get("http://10.51.136.173:8000/api/products")
+        const response = await axios.get(`${SERVER}/api/products`)
         await context.commit("SET_PRODUCT_OPTIONS", response.data.data)
         await context.commit("HAS_PRODUCT_OPTIONS", true)
         await context.commit("SET_IS_LOADING")
@@ -586,7 +587,7 @@ const store = new Vuex.Store({
     },
     async fetchSales(context) {
       try {
-        const response = await axios.get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
+        const response = await axios.get(`${SERVER}/api/sales?sort=desc&orderBy=id`)
         await context.commit("SET_SALES", response.data.data)
       } catch (error) {
         alert(`Error in actions.fetchSales: ${ error.message }`)
@@ -594,7 +595,7 @@ const store = new Vuex.Store({
     },
     async fetchEventTypes(context) {
       try {
-        const response = await axios.get("http://10.51.136.173:8000/api/event-types")
+        const response = await axios.get(`${SERVER}/api/event-types`)
         context.commit("SET_EVENT_TYPES", response.data)
       } catch (error) {
         alert(`Error in actions.fetchEventTypes: ${ error.message }`)
@@ -638,7 +639,7 @@ const EventForm = Vue.component("event-form", {
 		async fetchEvents() {
       let date = dateFns.format(new Date(this.date), "YYYY-MM-DD")
       try {
-        const response = await axios.get(`http://10.51.136.173:8000/api/events?start=${date}&type=${this.event_type || this.type}`)
+        const response = await axios.get(`${SERVER}/api/events?start=${date}&type=${this.event_type || this.type}`)
         let eventOptions = response.data.map(event => {
           let time = dateFns.format(new Date(event.start), "h:mm aa")
           return {
@@ -655,7 +656,7 @@ const EventForm = Vue.component("event-form", {
     // Fetch Sale Tickets
     async fetchSaleTickets() {
       try {
-        const response = await axios.get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
+        const response = await axios.get(`${SERVER}/api/sale/${this.$route.params.id}`)
         let tickets = response.data.events[this.$vnode.key - 1].tickets.map(ticket => ticket.id)
         //await this.$store.dispatch("setSelectedTickets", tickets)
         this.tickets = tickets
@@ -670,7 +671,7 @@ const EventForm = Vue.component("event-form", {
 		// Fetch Tickets Types
 		async fetchTicketsTypes() {
       try {
-        const response = await axios.get(`http://10.51.136.173:8000/api/allowedTickets?event_type=${this.event_type || this.type}`)
+        const response = await axios.get(`${SERVER}/api/allowedTickets?event_type=${this.event_type || this.type}`)
         this.ticketOptions = response.data.data
       } catch (error) {
         alert(`fetchTicketTypes in EventForm failed: ${error.message}`)
@@ -754,7 +755,10 @@ const SalesForm = Vue.component("sales-form", {
   },
 	async updated() {
     await this.$store.dispatch("calculateTotals")
-	},
+  },
+  async beforeDestroyed() {
+    this.$store.dispatch("reset")
+  },
 	computed: {
     selectedProducts: {
       set(selectedProducts) { this.$store.dispatch("setSelectedProducts", selectedProducts) },
@@ -915,7 +919,7 @@ const SalesForm = Vue.component("sales-form", {
       let errors = {}
       errors.fetchSale = ["Unable to fetch sale"]
       try {
-        const response = await axios.get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
+        const response = await axios.get(`${SERVER}/api/sale/${this.$route.params.id}`)
         let sale = response.data
           // Set sell to
           this.sellTo = sale.sell_to_organization ? 1 : 0
@@ -962,7 +966,7 @@ const SalesForm = Vue.component("sales-form", {
 			event.preventDefault()
 			this.numberOfEvents++
     },
-		submit(event) {
+		async submit(event) {
 			event.preventDefault()
 			let request = {
 				// Customer 
@@ -993,19 +997,18 @@ const SalesForm = Vue.component("sales-form", {
 				memo         : this.$store.getters.memo,
 			}
       console.log(request)
-      if (this.isValid)
+      /*if (this.isValid)
       {
-        axios({
-          method: "POST",
-          data  : request,
-          headers: { "content-type": "application/json" },
-          url    : "http://10.51.136.173:8000/api/sales", 
-        })
-        //.then(response => alert(response.message))
-        .catch(error => { alert("Unable to save this sale at this time.") })
+        try {
+          const response = await axios.post(`${SERVER}/api/sales`)
+          const sale      = response.data.data
+          this.$router.push({ name: "show", params: { id: sale.id } })
+        } catch(error) {
+          alert(`Unable to save this sale at this time: ${error}`)
+        }
       } else {
         this.$store.dispatch("setShowModal")
-      }
+      }*/
 		}
   },
 })
@@ -1046,7 +1049,7 @@ const Index = Vue.component("index", {
       let errors = {}
       errors.fetchSales = ["Unable to fetch sales"]
       axios
-        .get("http://10.51.136.173:8000/api/sales?sort=desc&orderBy=id")
+        .get(`${SERVER}/api/sales?sort=desc&orderBy=id`)
         .then(response => this.sales = response.data.data)
         .catch(error => store.dispatch("setErrors", errors))
         .finally(() => this.isLoading = !this.isLoading)
@@ -1089,7 +1092,7 @@ const Show = Vue.component("show", {
   methods : {
     fetchSale() {
       axios
-        .get(`http://10.51.136.173:8000/api/sale/${this.$route.params.id}`)
+        .get(`${SERVER}/api/sale/${this.$route.params.id}`)
         .then(response => this.sale = response.data)
         .catch(error => alert(error.response.message))
         .finally(() => this.isLoading = !this.isLoading)
