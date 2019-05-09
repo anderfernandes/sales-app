@@ -762,6 +762,8 @@ const SalesForm = Vue.component("sales-form", {
   template: "#sales-form",
   components: { EventForm },
   async created() {
+    await this.resetComputed()
+    await this.$store.dispatch("reset")
 		await this.$store.dispatch("fetchSettings")
 		await this.$store.dispatch("fetchCustomers")
 		await this.$store.dispatch("fetchGrades")
@@ -944,6 +946,41 @@ const SalesForm = Vue.component("sales-form", {
     },
 	},
   methods: {
+    // reset computed properties
+    async resetComputed() {
+      this.selectedProducts = await []
+      this.activeTab        = await ""
+      this.memo             = await ""
+      this.memos            = await []
+      this.payments         = await []
+      //this.productOptions   = await []
+      this.products         = await []
+      //this.taxableOptions   = await []
+      this.taxable          = await false
+      //this.subtotal         = await null
+      //this.tax              = await null
+      //this.total            = await null
+      this.tendered         = await 0
+      this.paid             = await 0
+      //this.balance          = await null
+      //this.change_due       = await null
+      //this.settings         = await []
+      //this.paymentMethods   = await []
+      this.paymentMethod    = await null
+      //this.sellToOptions    = await []
+      this.sellTo           = await null
+      this.saleStatus       = await "open"
+      //this.saleStatuses     = await []
+      this.customer         = await null
+      //this.customerOptions  = await []
+      this.grades           = await []
+      //this.gradeOptions     = await []
+      this.reference        = await []
+      //this.numberOfEvents   = await 0
+      //this.errors           = await []
+      //this.isValid          = await false
+
+    },
     // Fetch Sale
     async fetchSale() {
       let errors = {}
