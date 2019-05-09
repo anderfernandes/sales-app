@@ -32,12 +32,12 @@
     <div>
       <modal></modal>
       <transition name="fade" mode="out-in">
-        <sui-dimmer v-if="false" active inverted>
+        <sui-dimmer v-if="isLoading" active inverted>
           <sui-loader content="Loading..."></sui-loader>
         </sui-dimmer>
       </transition>
       <transition name="fade" mode="out-in">
-        <div id="form" v-if="true">
+        <div id="form" v-if="!isLoading">
           <!--- Buttons --->
           <div class="ui grid">
             <div class="ui sixteen wide column" id="top">
@@ -974,10 +974,10 @@
                   </div>
                   <div class="content">
                     <div class="meta">
-                      <div class="ui label" style="border-color: white; background-color: transparent; color: white; border-width: 1px">
+                      <div class="ui label" style="border: white 1px solid; background-color: transparent; color: white;">
                         {{ event.show.type }}
                       </div>
-                      <div class="ui event-type label" :style="{ color: 'white', backgroundColor: event.type.color }">
+                      <div class="ui event-type label" :style="{ color: 'white', backgroundColor: event.type.color, border: 'white 1px solid' }">
                         {{ event.type.name }}
                       </div>
                     </div>

@@ -20,7 +20,7 @@ Vue.mixin({
         case 'complete' : color = { backgroundColor: "#21ba45"}; break;
         case 'confirmed': color = { backgroundColor: "#ffffff", color: "#21ba45"}; break;
         case 'open'     : color = { backgroundColor: "#6435c9"}; break;
-        case 'canceled' : color = { backgroundColor: "#cf3534"}; break;
+        case 'canceled' : color = { backgroundColor: "#db2828"}; break; // MST RED: #CF3534 SEMANTIC RED: #DB2828
         case 'tentative': color = { backgroundColor: "#fbbd08"}; break;
         case 'no show'  : color = { backgroundColor: "#f2851c"}; break;
       }
@@ -95,7 +95,8 @@ const getDefaultState = () => ({
 			{ key: "open"     ,  text: "Open"     , value: "open"     , icon: "unlock"},
 			{ key: "confirmed",  text: "Confirmed", value: "confirmed", icon: "thumbs up"},
 			{ key: "complete" ,  text: "Completed", value: "complete" , icon: "check"},
-			{ key: "tentative",  text: "Tentative", value: "tentative", icon: "help"},
+      { key: "tentative",  text: "Tentative", value: "tentative", icon: "help"},
+      { key: "canceled" ,  text: "Canceled",  value: "canceled" , icon: "remove"},
 			{ key: "no show"  ,  text: "No Show"  , value: "no show"  , icon: "thumbs down"},
 		],
 		customerOptions   : [],
@@ -754,6 +755,9 @@ const EventForm = Vue.component("event-form", {
 
 // Sales Form
 const SalesForm = Vue.component("sales-form", {
+  data: () => ({
+    isLoading : true,
+  }),
   props: ["type"],
   template: "#sales-form",
   components: { EventForm },
@@ -767,9 +771,8 @@ const SalesForm = Vue.component("sales-form", {
     // Fetch payments if a sale exists?
     if (this.$route.params.id)
       await this.fetchSale()
-  },
-  async beforeMount() {
-    await this.$store.dispatch("reset") 
+    
+    this.isLoading = false
   },
 	async updated() {
     await this.$store.dispatch("calculateTotals")
@@ -894,10 +897,6 @@ const SalesForm = Vue.component("sales-form", {
 		numberOfEvents: {
 			set(numberOfEvents) { this.$store.dispatch('setNumberOfEvents', numberOfEvents) },
 			get() { return this.$store.getters.numberOfEvents },
-    },
-    isLoading: {
-      set(isLoading) { this.$store.dispatch("setIsLoading", isLoading) },
-      get() { return this.$store.getters.isLoading }
     },
     errors() {
       return this.$store.getters.errors
@@ -1032,8 +1031,12 @@ const SalesForm = Vue.component("sales-form", {
       if (this.isValid)
       {
         try {
-          const response = await axios.post(`${SERVER}/api/sales`, request)
-          const sale      = response.data.data.sale
+          let response = null
+          if (this.$route.name == "create") 
+            response = await axios.post(`${SERVER}/api/sales`, request)
+          else if (this.$route.name == "edit")
+            response = await axios.post(`${SERVER}/api/sales/${this.$route.params.id}`, request)
+          const sale = response.data.data
           this.$router.push({ name: "show", params: { id: sale.id } })
         } catch(error) {
           alert(`Unable to save this sale at this time: ${error}`)

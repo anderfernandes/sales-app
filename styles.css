@@ -23,12 +23,12 @@ textarea {
   border-width: 1px;
   border-color: white;
   cursor: pointer;
-  transition: all 1s;
+  transition: all 0.5s;
 }
 
 .ui.segment#event-type {
   cursor: pointer;
-  transition: all 1s;
+  transition: all 0.5s;
 }
 
 .card#event-type:hover > .content > .description {
@@ -47,7 +47,7 @@ textarea {
 }
 
 .list-enter-active, .list-leave-active {
-  transition: all 1s;
+  transition: all 0.5s;
 }
 
 .list-enter, .list-leave-to {
@@ -63,13 +63,13 @@ textarea {
 
 /** Switching color of sale box **/
 .ui.open.sale.segment       { 
-  transition: all 1s;
+  transition: all 0.5s;
   background-color: #6435c9 !important;
   border: white 1px solid !important;
 }
 
 .ui.open.sale.segment:hover { 
-  transition: all 1s;
+  transition: all 0.5s;
   background-color: white   !important; 
   border: #6435c9 1px solid !important;
 }
@@ -77,38 +77,38 @@ textarea {
 /** Switching text color of sale box **/
 .ui.open.sale.segment .header, 
 .ui.open.sale.segment .meta { 
-  transition: all 1s;
+  transition: all 0.5s;
   color: white !important;
 }
 
 .ui.open.sale.segment:hover .header,
 .ui.open.sale.segment:hover .meta,
 .ui.open.sale.segment:hover .ui.label:not(.violet) { 
-  transition: all 1s;
+  transition: all 0.5s;
   color: #6435c9 !important;
 }
 
 .ui.open.sale.segment:hover .ui.event-type.label {
-  transition: all 1s;
+  transition: all 0.5s;
   color: white !important;
 }
 
 .ui.open.sale.segment:hover .ui.label:not(.event-type) {
-  transition: all 1s;
+  transition: all 0.5s;
   border: #6435c9 1px solid !important;
 }
 
-/** OPEN SALE STYLES **/
+/** COMPLETE SALE STYLES **/
 
 /** Switching color of sale box **/
 .ui.complete.sale.segment       { 
-  transition: all 1s;
+  transition: all 0.5s;
   background-color: #21ba45 !important;
   border: white 1px solid !important;
 }
 
 .ui.complete.sale.segment:hover { 
-  transition: all 1s;
+  transition: all 0.5s;
   background-color: white   !important; 
   border: #21ba45 1px solid !important;
 }
@@ -116,24 +116,24 @@ textarea {
 /** Switching text color of sale box **/
 .ui.complete.sale.segment .header, 
 .ui.complete.sale.segment .meta { 
-  transition: all 1s;
+  transition: all 0.5s;
   color: white !important;
 }
 
 .ui.complete.sale.segment:hover .header,
 .ui.complete.sale.segment:hover .meta,
 .ui.complete.sale.segment:hover .ui.label:not(.green) { 
-  transition: all 1s;
+  transition: all 0.5s;
   color: #21ba45 !important;
 }
 
 .ui.complete.sale.segment:hover .ui.event-type.label {
-  transition: all 1s;
+  transition: all 0.5s;
   color: white !important;
 }
 
 .ui.complete.sale.segment:hover .ui.label:not(.event-type) {
-  transition: all 1s;
+  transition: all 0.5s;
   border: #21ba45 1px solid !important;
 }
 
@@ -141,13 +141,13 @@ textarea {
 
 /** Switching color of sale box **/
 .ui.tentative.sale.segment       { 
-  transition: all 1s;
+  transition: all 0.5s;
   background-color: #fbbd08 !important;
   border: white 1px solid !important;
 }
 
 .ui.tentative.sale.segment:hover { 
-  transition: all 1s;
+  transition: all 0.5s;
   background-color: white   !important; 
   border: #fbbd08 1px solid !important;
 }
@@ -155,23 +155,148 @@ textarea {
 /** Switching text color of sale box **/
 .ui.tentative.sale.segment .header, 
 .ui.tentative.sale.segment .meta { 
-  transition: all 1s;
+  transition: all 0.5s;
   color: white !important;
 }
 
 .ui.tentative.sale.segment:hover .header,
 .ui.tentative.sale.segment:hover .meta,
 .ui.tentative.sale.segment:hover .ui.label:not(.yellow) { 
-  transition: all 1s;
+  transition: all 0.5s;
   color: #fbbd08 !important;
 }
 
 .ui.tentative.sale.segment:hover .ui.event-type.label {
-  transition: all 1s;
+  transition: all 0.5s;
   color: white !important;
 }
 
 .ui.tentative.sale.segment:hover .ui.label:not(.event-type) {
-  transition: all 1s;
+  transition: all 0.5s;
   border: #fbbd08 1px solid !important;
+}
+
+/** NO SHOW SALE STYLES **/
+
+/** Switching color of sale box **/
+.ui.no.show.sale.segment       { 
+  transition: all 0.5s;
+  background-color: db2828 !important;
+  border: white 1px solid !important;
+}
+
+.ui.no.show.sale.segment:hover { 
+  transition: all 0.5s;
+  background-color: white   !important; 
+  border: #f2711c 1px solid !important;
+}
+
+/** Switching text color of sale box **/
+.ui.no.show.sale.segment .header, 
+.ui.no.show.sale.segment .meta { 
+  transition: all 0.5s;
+  color: white !important;
+}
+
+.ui.no.show.sale.segment:hover .header,
+.ui.no.show.sale.segment:hover .meta,
+.ui.no.show.sale.segment:hover .ui.label:not(.red) { 
+  transition: all 0.5s;
+  color: #f2711c !important;
+}
+
+.ui.no.show.sale.segment:hover .ui.event-type.label {
+  transition: all 0.5s;
+  color: white !important;
+}
+
+.ui.no.show.sale.segment:hover .ui.label:not(.event-type) {
+  transition: all 0.5s;
+  border: #f2711c 1px solid !important;
+}
+
+/** CANCELED SALE STYLES **/
+
+/** Switching color of sale box **/
+.ui.canceled.sale.segment       { 
+  transition: all 0.5s;
+  background-color: db2828 !important;
+  border: white 1px solid !important;
+}
+
+.ui.canceled.sale.segment:hover { 
+  transition: all 0.5s;
+  background-color: white   !important; 
+  border: #db2828 1px solid !important;
+}
+
+/** Switching text color of sale box **/
+.ui.canceled.sale.segment .header, 
+.ui.canceled.sale.segment .meta { 
+  transition: all 0.5s;
+  color: white !important;
+}
+
+.ui.canceled.sale.segment:hover .header,
+.ui.canceled.sale.segment:hover .meta,
+.ui.canceled.sale.segment:hover .ui.label:not(.red) { 
+  transition: all 0.5s;
+  color: #db2828 !important;
+}
+
+.ui.canceled.sale.segment:hover .ui.event-type.label {
+  transition: all 0.5s;
+  color: white !important;
+}
+
+.ui.canceled.sale.segment:hover .ui.label:not(.event-type) {
+  transition: all 0.5s;
+  border: #db2828 1px solid !important;
+}
+
+
+/** CONFIRMED SALE STYLES **/
+
+/** Switching color of sale box **/
+.ui.confirmed.sale.segment       { 
+  transition: all 0.5s;
+  background-color: white !important;
+  border: #21ba45 1px solid !important;
+}
+
+.ui.confirmed.sale.segment .ui.label:not(.event-type) {
+  background-color: white !important;
+  border: #21ba45 1px solid !important;
+  color: #21ba45 !important;
+}
+
+.ui.confirmed.sale.segment:hover { 
+  transition: all 0.5s;
+  background-color: black   !important; 
+  border: black 1px solid !important;
+}
+
+/** Switching text color of sale box **/
+.ui.confirmed.sale.segment .header, 
+.ui.confirmed.sale.segment .meta { 
+  transition: all 0.5s;
+  color: #21ba45 !important;
+}
+
+.ui.confirmed.sale.segment:hover .header,
+.ui.confirmed.sale.segment:hover .meta,
+.ui.confirmed.sale.segment:hover .ui.label:not(.green) { 
+  transition: all 0.5s;
+  color: #21ba45 !important;
+}
+
+.ui.confirmed.sale.segment:hover .ui.event-type.label {
+  transition: all 0.5s;
+  color: white !important;
+}
+
+.ui.confirmed.sale.segment:hover .ui.label:not(.event-type) {
+  transition: all 0.5s;
+  border: #21ba45 1px solid !important;
+  background-color: black !important;
 }
