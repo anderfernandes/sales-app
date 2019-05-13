@@ -1,5 +1,5 @@
 const dateFormat = { long: "dddd, MMMM D, YYYY [at] h:mm a", short: "dddd, MMMM D, YYYY" }
-const SERVER     = "http://10.51.147.77:8000"
+const SERVER     = "http://10.51.135.136:8000"
 
 Vue.config.devtools = true // DISABLE THIS IN PRODUCTION
 Vue.use(SemanticUIVue)
@@ -22,7 +22,7 @@ Vue.mixin({
         case 'open'     : color = { backgroundColor: "#6435c9"}; break;
         case 'canceled' : color = { backgroundColor: "#db2828"}; break; // MST RED: #CF3534 SEMANTIC RED: #DB2828
         case 'tentative': color = { backgroundColor: "#fbbd08"}; break;
-        case 'no show'  : color = { backgroundColor: "#f2851c"}; break;
+        case 'no show'  : color = { backgroundColor: "#f2711c"}; break;
       }
       return color
     },
@@ -30,12 +30,12 @@ Vue.mixin({
       let className = null
       switch(status)
       {
-        case 'complete' : className = "ui left pointing green label"; break;
+        case 'complete' : className = "ui left pointing green label"      ; break;
         case 'confirmed': className = "ui left pointing basic green label"; break;
-        case 'open'     : className = "ui left pointing violet label"; break;
-        case 'canceled' : className = "ui left pointing red label"; break;
-        case 'tentative': className = "ui left pointing yellow label"; break;
-        case 'no show'  : className = "ui left pointing organge label"; break;
+        case 'open'     : className = "ui left pointing violet label"     ; break;
+        case 'canceled' : className = "ui left pointing red label"        ; break;
+        case 'tentative': className = "ui left pointing yellow label"     ; break;
+        case 'no show'  : className = "ui left pointing orange label"     ; break;
       }
       return className
     },
@@ -118,6 +118,7 @@ const getDefaultState = () => ({
     paid              : 0,
     event_types       : [],
     sales             : [],
+    showRefundModal   : false,
     currencySettings  : {
 			minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -130,6 +131,9 @@ const store = new Vuex.Store({
 	state: getDefaultState(),
 	// ??
 	mutations: {
+    TOGGLE_REFUND_MODAL(state) {
+      state.showRefundModal = !state.showRefundModal
+    },
     SET_MESSAGE(state, message) {
       state.message = message
     },
@@ -428,9 +432,13 @@ const store = new Vuex.Store({
     selectedProducts : state => state.selectedProducts,
     selectedTickets  : state => state.selectedTickets,
     message          : state => state.message,
+    showRefundModal  : state => state.showRefundModal,
 	},
 	// alias to methods in vue
 	actions: {
+    toggleRefundModal(context) {
+      context.commit("TOGGLE_REFUND_MODAL")
+    },
     setMessage(context, message) {
       context.commit("SET_MESSAGE", message)
     },
@@ -612,6 +620,21 @@ const store = new Vuex.Store({
 	},
 })
 
+// Observer
+const Observer = Vue.component("observer", {
+  template: "#observer",
+  data: () => ({
+    observer: null,
+  }),
+  mounted() {
+    this.observer = new IntersectionObserver(([entry]) => {
+      if (entry && entry.isIntersecting)
+        this.$emit("intersect")
+    })
+    this.observer.observe(this.$el)
+  },
+})
+
 // Modal
 const Modal = Vue.component("modal", {
   template: "#modal",
@@ -635,6 +658,28 @@ const Modal = Vue.component("modal", {
     this.$store.dispatch("setMessage", "")
     this.$store.dispatch("setErrors", {})
   },
+})
+
+// Refund Modal
+const RefundModal = Vue.component("refund-modal", {
+  template: "#refund-modal",
+  props: ["sale"],
+  data: () => ({
+    id     : "",
+    total  : "",
+    memo   : "",
+  }),
+  computed: {
+    showRefundModal: {
+      set() { this.$store.dispatch("toggleRefundModal") },
+      get() { return this.$store.getters.showRefundModal       }
+    }
+  },
+  methods: {
+    submit(event) {
+      event.preventDefault()
+    },
+  }
 })
 
 // Event Form
@@ -1108,28 +1153,110 @@ const Index = Vue.component("index", {
   props: ["type"],
   components: { SaleBox },
   data: () => ({
-    open     : false,
-    isLoading: true,
-    sales    : [],
+    open            : false,
+    isLoading       : true,
+    sales           : [],
+    page            : 1,
+    query           : {
+      id              : "",
+      customer_id     : null,
+      organization_id : null,
+      status          : null,
+      cashier_id      : null,
+    },
+    customers     : [],
+    organizations : [],
+    cashiers      : [],
   }),
   computed: {
     event_types() { return this.$store.getters.event_types },
+    q() {
+      let q = ""
+      
+      if (this.query.id)
+        q += `&id=${this.query.id}`
+      if (this.query.customer_id)
+        q += `&customer_id=${this.query.customer_id}`
+      if (this.query.organization_id)
+        q += `&organization_id=${this.query.organization_id}`
+      if (this.query.status)
+        q += `&status=${this.query.status}`
+      if (this.query.cashier_id)
+        q += `&cashier_id=${this.query.cashier_id}`
+      
+      return q
+    },
+    statuses() {
+      return this.$store.getters.saleStatuses
+    }
   },
   methods: {
     toggle() { this.open = !this.open },
-    fetchSales() {
+    async fetchCustomers() {
+      let errors = {}
+      errors.fetchCustomers = ["Unable to fetch customers"]
+      try {
+        const response = await axios.get(`${SERVER}/api/customers`)
+        let customers = response.data.map(customer => ({
+          key   : customer.id,
+          value : customer.id,
+          text  : `${customer.name}`
+        }))
+        this.customers = customers
+      } catch (error) {
+        store.dispatch("setErrors", errors)
+      }
+    },
+    async fetchOrganizations() {
+      let errors = {}
+      errors.fetchOrganizations = ["Unable to fetch customers"]
+      try {
+        const response = await axios.get(`${SERVER}/api/organizations`)
+        let organizations = response.data.map(organization => ({
+          key   : organization.id,
+          value : organization.id,
+          text  : `${organization.name}`
+        }))
+        this.organizations = organizations
+      } catch (error) {
+        store.dispatch("setErrors", errors)
+      }
+    },
+    async fetchCashiers() {
+      let errors = {}
+      errors.fetchCashiers = ["Unable to fetch cashiers"]
+      try {
+        const response = await axios.get(`${SERVER}/api/staff`)
+        let cashiers = await response.data.map(cashier => ({
+          icon  : "user circle",
+          key   : cashier.id,
+          value : cashier.id,
+          text  : `${cashier.firstname}`
+        }))
+        this.cashiers = cashiers
+      } catch (error) {
+        store.dispatch("setErrors", errors)
+      }
+    },
+    async fetchSales() {
       let errors = {}
       errors.fetchSales = ["Unable to fetch sales"]
-      axios
-        .get(`${SERVER}/api/sales?sort=desc&orderBy=id`)
-        .then(response => this.sales = response.data.data)
-        .catch(error => store.dispatch("setErrors", errors))
-        .finally(() => this.isLoading = !this.isLoading)
+      try {
+        const response = await axios.get(`${SERVER}/api/sales?sort=desc&orderBy=id&page=${this.page++}`)
+        this.sales     = await [...this.sales, ...response.data.data]
+        this.isLoading = false
+
+      } catch (error) {
+        store.dispatch("setErrors", errors)
+      }
     },
   },
-  created() { 
-    this.$store.dispatch("fetchEventTypes")
-    this.fetchSales() 
+  async created() { 
+    await this.$store.dispatch("fetchEventTypes")
+    await this.fetchCustomers()
+    await this.fetchOrganizations()
+    await this.fetchCashiers()
+    await this.fetchSales() 
   }
 })
 
@@ -1142,8 +1269,9 @@ const Create = Vue.component("create", {
 const Show = Vue.component("show", { 
   template: "#show",
   data: () => ({
-    sale: {},
-    isLoading: true,
+    sale            : {},
+    isLoading       : true,
+    showRefundModal : false,
   }),
   created() {
     this.fetchSale()

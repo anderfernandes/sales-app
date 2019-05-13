@@ -1,3 +1,7 @@
+.observer {
+  height: 1px !important;
+}
+
 textarea {
   font: inherit;
 }
@@ -200,7 +204,7 @@ textarea {
 
 .ui.no.show.sale.segment:hover .header,
 .ui.no.show.sale.segment:hover .meta,
-.ui.no.show.sale.segment:hover .ui.label:not(.red) { 
+.ui.no.show.sale.segment:hover .ui.label:not(.orange) { 
   transition: all 0.5s;
   color: #f2711c !important;
 }
@@ -295,8 +299,29 @@ textarea {
   color: white !important;
 }
 
+.ui.confirmed.sale.segment:hover .ui.pointing.green.label {
+  transition: all 0.5s;
+  color: #21ba45 !important;
+  background-color: white !important;
+}
+
 .ui.confirmed.sale.segment:hover .ui.label:not(.event-type) {
   transition: all 0.5s;
   border: #21ba45 1px solid !important;
   background-color: black !important;
+}
+
+/** CANCELED LABEL STYLES **/
+.ui.complete.sale.segment:hover .ui.red.label,
+.ui.no.show.sale.segment:hover .ui.red.label,
+.ui.open.sale.segment:hover .ui.red.label,
+.ui.tentative.sale.segment:hover .ui.red.label {
+  transition: all 0.5s;
+  border: #db2828 1px solid !important;
+  background-color: #db2828 !important;
+  color: white !important;
+}
+
+.ui.pointing.label {
+  z-index: 0 !important;
 }
