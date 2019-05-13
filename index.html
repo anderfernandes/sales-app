@@ -656,25 +656,26 @@
                 <div class="ui form" style="margin-left: 1rem">
                   <div class="five inline fields" style="margin-bottom: 1rem; margin-right: -1rem">
                     <sui-form-field>
-                      <input type="number" placeholder="Sale #" v-model="query.id" style="width:100%">
+                      <input min="1" type="number" placeholder="Sale #" v-model.number="query.id" 
+                             style="width:100%">
                     </sui-form-field>
                     <sui-form-field>
-                      <sui-dropdown placeholder="Customer" search :options="customers" 
+                      <sui-dropdown placeholder="Customer" search :options="customers" direction="downward"
                                     v-model="query.customer_id" fluid selection>
                       </sui-dropdown>
                     </sui-form-field>
                     <sui-form-field>
-                      <sui-dropdown placeholder="Organization" search :options="organizations" 
+                      <sui-dropdown placeholder="Organization" search :options="organizations" direction="downward" 
                                     v-model="query.organization_id" fluid selection>
                       </sui-dropdown>
                     </sui-form-field>
                     <sui-form-field>
-                      <sui-dropdown placeholder="All Sale Status" search :options="statuses"
+                      <sui-dropdown placeholder="All Sale Status" search :options="statuses" direction="downward"
                                     v-model="query.status" fluid selection>
                       </sui-dropdown>
                     </sui-form-field>
                     <sui-form-field style="padding-right: 0 !important">
-                        <sui-dropdown placeholder="All Cashiers" search :options="cashiers" 
+                        <sui-dropdown placeholder="All Cashiers" search :options="cashiers" direction="downward" 
                                       v-model="query.cashier_id" fluid selection>
                         </sui-dropdown>
                     </sui-form-field>
@@ -688,7 +689,7 @@
 
       <br>
       
-      <sui-button icon="pencil" circular color="black" size="large" @click="toggle"
+      <sui-button icon="pencil" circular color="black" size="big" @click="toggle"
                   style="position:fixed; z-index: 999; right: 11rem; bottom: 3rem">
       </sui-button>
 
@@ -698,41 +699,50 @@
         <sui-loader content="Loading..."></sui-loader>
       </sui-dimmer>
 
-      <transition-group name="list">
-        <div :class="`ui ${sale.status} sale segment`" v-for="sale in sales" :key="sale.id" :style="getSaleColor(sale.status)"
-            @click="$router.push({name: 'show', params: { id: sale.id }})">
-          <div class="ui items">
-            <sale-box :sale="sale" :key="sale.id"></sale-box>
+      <div v-if="this.sales.length > 0">  
+        <transition-group name="list" tag="div">
+          <div :class="`ui ${sale.status} sale segment`" v-for="sale in sales" :key="sale.id" 
+              :style="getSaleColor(sale.status)" 
+              @click="$router.push({name: 'show', params: { id: sale.id }})">
+            <div class="ui items">
+              <sale-box :sale="sale" :key="sale.id"></sale-box>
+            </div>
           </div>
+        </transition-group>
+      </div>
+
+      <transition name="fade" mode="out-in">
+        <div class="ui message" v-if="this.sales.length == 0">
+          Your search has returned no results.
         </div>
-      </transition-group>
+      </transition>
 
       <observer @intersect="fetchSales"></observer>
 
       <sui-modal v-model="open" basic>
-          <sui-header icon="info circle">Select the event type</sui-header>
-          <sui-segment :style="{ backgroundColor: event_type.color, color: 'white' }" id="event-type"
-                       @click="$router.push({ name: 'create', params: { type: event_type.id } })"
-                       v-for="event_type in event_types" :key="event_type.id">
-            <div class="ui inverted small header">
-              {{ event_type.name }}
-              <div class="sub header">{{ event_type.description }}</div>
-              <div class="ui divider"></div>
-              <div class="sub header">
-                Available tickets:
-                <div class="ui label" v-for="ticket in event_type.allowed_tickets"
-                    style="background-color: transparent; border-width: 1px; border-color:white">
-                    <i class="ticket icon"></i> {{ ticket.name }}
-                    <div class="detail">$ {{ parseFloat(ticket.price).toFixed(2) }}</div>
-                </div>
+        <sui-header icon="info circle">Select the event type</sui-header>
+        <sui-segment :style="{ backgroundColor: event_type.color, color: 'white' }" id="event-type"
+                      @click="$router.push({ name: 'create', params: { type: event_type.id } })"
+                      v-for="event_type in event_types" :key="event_type.id">
+          <div class="ui inverted small header">
+            {{ event_type.name }}
+            <div class="sub header">{{ event_type.description }}</div>
+            <div class="ui divider"></div>
+            <div class="sub header">
+              Available tickets:
+              <div class="ui label" v-for="ticket in event_type.allowed_tickets"
+                  style="background-color: transparent; border-width: 1px; border-color:white">
+                  <i class="ticket icon"></i> {{ ticket.name }}
+                  <div class="detail">$ {{ parseFloat(ticket.price).toFixed(2) }}</div>
               </div>
             </div>
-          </sui-segment>
-          <sui-modal-actions>
-              <sui-button inverted @click="toggle" icon="close">
-                Close
-              </sui-button>
-            </sui-modal-actions>
+          </div>
+        </sui-segment>
+        <sui-modal-actions>
+            <sui-button inverted @click="toggle" icon="close">
+              Close
+            </sui-button>
+        </sui-modal-actions>
       </sui-modal>
 
       <br><br>

@@ -1158,7 +1158,7 @@ const Index = Vue.component("index", {
     sales           : [],
     page            : 1,
     query           : {
-      id              : "",
+      id              : null,
       customer_id     : null,
       organization_id : null,
       status          : null,
@@ -1188,6 +1188,13 @@ const Index = Vue.component("index", {
     },
     statuses() {
       return this.$store.getters.saleStatuses
+    }
+  },
+  watch: {
+    q() {
+      this.page = 1
+      console.log(this.q.length)
+      this.fetchSales() 
     }
   },
   methods: {
@@ -1242,8 +1249,17 @@ const Index = Vue.component("index", {
       let errors = {}
       errors.fetchSales = ["Unable to fetch sales"]
       try {
-        const response = await axios.get(`${SERVER}/api/sales?sort=desc&orderBy=id&page=${this.page++}`)
-        this.sales     = await [...this.sales, ...response.data.data]
+        let url = this.q.length == 0
+                    ? `${SERVER}/api/sales?sort=desc&orderBy=id&page=${this.page++}`
+                    : `${SERVER}/api/sales?sort=desc&orderBy=id&page=${this.page++}${this.q}`
+          
+        const response = await axios.get(url)
+
+        if (this.page < 3)
+          this.sales = await response.data.data
+        else
+          this.sales = await [...this.sales, ...response.data.data]
+        
         this.isLoading = false
 
       } catch (error) {
@@ -1256,7 +1272,7 @@ const Index = Vue.component("index", {
     await this.fetchCustomers()
     await this.fetchOrganizations()
     await this.fetchCashiers()
-    await this.fetchSales() 
+    //await this.fetchSales() 
   }
 })
 
