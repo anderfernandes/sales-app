@@ -63,6 +63,8 @@ const getDefaultState = () => ({
     events            : [],
     dates             : [], // Array for dates of each event, index + 1 is event number
     eventOptions      : [], // Array of objects with event options, index + 1 is event number
+    selectedEventsOptions : [], // Array of objects of full 
+    selectedEvents    : [],
     tickets           : [], // Each item represents and event and every event containts tickets for that event
     availableTickets  : [],
     selectedTickets   : [],
@@ -139,6 +141,12 @@ const store = new Vuex.Store({
     },
     RESET(state) {
       Object.assign(state, getDefaultState)
+    },
+    SET_SELECTED_EVENTS_OPTIONS(state, payload) {
+      Vue.set(state.selectedEventsOptions, payload.index, payload.eventOptions)
+    },
+    SET_SELECTED_EVENTS(state, payload) {
+      Vue.set(state.selectedEvents, payload.index, payload.event)
     },
     SET_PAID(state, amount) {
       state.paid = amount
@@ -354,7 +362,6 @@ const store = new Vuex.Store({
         let amount = ticket.amount || 0
         Vue.set(ticket, "amount", amount)
       })
-      console.log(payload.tickets)
       state.selectedTickets.splice(payload.index, 1, payload.tickets)
     },
 		SET_REFERENCE(state, reference) {
@@ -433,9 +440,17 @@ const store = new Vuex.Store({
     selectedTickets  : state => state.selectedTickets,
     message          : state => state.message,
     showRefundModal  : state => state.showRefundModal,
+    selectedEvents   : state => state.selectedEvents,
+    selectedEventsOptions : state => state.selectedEventsOptions,
 	},
 	// alias to methods in vue
 	actions: {
+    setSelectedEventsOptions(context, payload) {
+      context.commit("SET_SELECTED_EVENTS_OPTIONS", payload)
+    },
+    setSelectedEvents(context, payload) {
+      context.commit("SET_SELECTED_EVENTS", payload)
+    },
     toggleRefundModal(context) {
       context.commit("TOGGLE_REFUND_MODAL")
     },
@@ -700,11 +715,13 @@ const EventForm = Vue.component("event-form", {
       let date = dateFns.format(new Date(this.date), "YYYY-MM-DD")
       try {
         const response = await axios.get(`${SERVER}/api/events?start=${date}&type=${this.event_type || this.type}`)
-        let eventOptions = response.data.map(event => {
+        // Array with all event objects to show in box below event selection dropdown
+        this.selectedEventOptions = await response.data
+        let eventOptions = await response.data.map(event => {
           let time = dateFns.format(new Date(event.start), "h:mm aa")
           return {
             key  : event.id,
-            text : `${event.show.id == 1 ? event.memo : event.show.name} at ${time}`,
+            text : `#${event.id} - ${event.show.id == 1 ? event.memo : event.show.name} at ${time} (${event.type}, ${event.seats} ${event.seats == 1 ? "seat" : "seats"} left)`,
             value: event.id,
           }
         })
@@ -737,8 +754,32 @@ const EventForm = Vue.component("event-form", {
         alert(`fetchTicketTypes in EventForm failed: ${error.message}`)
       }
 		},
-	},
+  },
+  watch : {
+    event_id(newValue, oldValue) { this.selectedEvent = "" }
+  },
 	computed: {
+    selectedEventOptions: {
+      set(options) {
+        this.$store.dispatch("setSelectedEventsOptions", 
+        { index: this.$vnode.key - 1, eventOptions: options })
+      },
+      get() {
+        return this.$store.getters.selectedEventsOptions[this.$vnode.key - 1]
+      },
+    },
+    selectedEvent: {
+      set(event_id) {
+        let event = this.event_id 
+                      ? this.selectedEventOptions.find(event => event.id == this.event_id)
+                      : {}
+
+        this.$store.dispatch("setSelectedEvents", { index: this.$vnode.key - 1, event })
+      },
+      get() {
+        return this.$store.getters.selectedEvents[this.$vnode.key - 1]
+      }
+    },
     placeholderMessage() {
       return (this.eventOptions) && (this.eventOptions.length == 0) 
               ? 'No events found' 
@@ -774,7 +815,7 @@ const EventForm = Vue.component("event-form", {
       async set(date) { await this.$store.dispatch("setDate", { index: this.$vnode.key - 1, date: date }) },
       get() { return store.getters.dates[this.$vnode.key -1] }
     },
-		event: {
+		event_id: {
 			async set(event_id) { 
 				let event = { index: this.$vnode.key - 1, event_id: event_id }
 				await this.$store.dispatch("setEvent", event) 
@@ -789,13 +830,15 @@ const EventForm = Vue.component("event-form", {
       await this.fetchSaleTickets()
       
     } else if (this.$route.name == "create") {
-      this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
+      
+      //  this.date = dateFns.format(new Date(), "dddd, MMMM DD, YYYY")
     }
-    this.isLoading = false
+    this.selectedEvent = null
+    this.isLoading = await false
 	},
 	async updated() {
-		await this.$store.dispatch("calculateTotals")
-	}
+    await this.$store.dispatch("calculateTotals")
+  },
 })
 
 // Sales Form
@@ -808,7 +851,6 @@ const SalesForm = Vue.component("sales-form", {
   components: { EventForm },
   async created() {
     await this.resetComputed()
-    await this.$store.dispatch("reset")
 		await this.$store.dispatch("fetchSettings")
 		await this.$store.dispatch("fetchCustomers")
 		await this.$store.dispatch("fetchGrades")
@@ -823,9 +865,6 @@ const SalesForm = Vue.component("sales-form", {
   },
 	async updated() {
     await this.$store.dispatch("calculateTotals")
-  },
-  async beforeDestroyed() {
-    this.$store.dispatch("reset")
   },
 	computed: {
     selectedProducts: {
@@ -1001,7 +1040,7 @@ const SalesForm = Vue.component("sales-form", {
       //this.productOptions   = await []
       this.products         = await []
       //this.taxableOptions   = await []
-      this.taxable          = await false
+      this.taxable          = await 0
       //this.subtotal         = await null
       //this.tax              = await null
       //this.total            = await null
@@ -1209,6 +1248,11 @@ const Index = Vue.component("index", {
           value : customer.id,
           text  : `${customer.name}`
         }))
+        customers.unshift({
+          key: 0,
+          value: null,
+          text: "All Customers",
+        })
         this.customers = customers
       } catch (error) {
         store.dispatch("setErrors", errors)
@@ -1224,6 +1268,11 @@ const Index = Vue.component("index", {
           value : organization.id,
           text  : `${organization.name}`
         }))
+        organizations.unshift({
+          key: 0,
+          value: null,
+          text: "All Organizations",
+        })
         this.organizations = organizations
       } catch (error) {
         store.dispatch("setErrors", errors)
@@ -1240,6 +1289,11 @@ const Index = Vue.component("index", {
           value : cashier.id,
           text  : `${cashier.firstname}`
         }))
+        cashiers.unshift({
+          key: 0,
+          value: null,
+          text: "All Cashiers",
+        })
         this.cashiers = cashiers
       } catch (error) {
         store.dispatch("setErrors", errors)
@@ -1279,6 +1333,10 @@ const Index = Vue.component("index", {
 // Create Page
 const Create = Vue.component("create", { 
   template: "#create",
+  async beforeDestroy() {
+    await this.$store.dispatch("reset")
+    console.log("create before destroyed")
+  },
 })
 
 // Show Page
@@ -1319,6 +1377,10 @@ const Show = Vue.component("show", {
 // Update Page
 const Edit = Vue.component("update", { 
   template: "#edit",
+  async beforeDestroy() {
+    await this.$store.dispatch("reset")
+    console.log("edit before destroyed")
+  },
 })
 
 // Defining routes

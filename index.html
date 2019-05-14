@@ -405,7 +405,7 @@
 
   <!-- Event Template -->
   <template id="event-form">
-    <div class="ui inverted segment">
+    <sui-segment inverted :loading="isLoading">
       <div class="ui inverted horizontal divider header">
         <i class="calendar check icon"></i> Event #{{ $vnode.key }}
       </div>
@@ -421,17 +421,46 @@
         </div>
 
       </div>
-      <div class="required field">
-        <label>Event</label>
-        <sui-dropdown fluid selection direction="upward"
-                      :options="eventOptions"
-                      v-model="event"
-                      v-if="eventOptions"
-                      :placeholder="placeholderMessage"
-        />
-      </div>
+      
       <transition mode="out-in" name="fade">
-        <div class="required field" v-if="this.event != null">
+        <div class="required field" v-if="eventOptions">
+          <label>Event</label>
+          <sui-dropdown fluid selection direction="upward"
+                        :options="eventOptions"
+                        v-model="event_id"
+                        :placeholder="placeholderMessage">
+          </sui-dropdown>
+        
+          <transition mode="out-in" name="fade">
+            <div class="ui inverted segment" v-if="!isLoading && selectedEvent.show" style="border: white 1px solid">
+              <div class="ui items">
+                <div class="item">
+                  <div class="image" v-if="selectedEvent.show">
+                    <img :src="selectedEvent.show.cover" :alt="selectedEvent.show.name">
+                  </div>
+                  <div class="content">
+                    <div class="header" style="color: white">
+                      {{ selectedEvent.show.name }}
+                    </div>
+                    <div class="meta">
+                      <div class="ui inverted header">
+                        <div class="ui basic label" style="margin-left:0">{{ selectedEvent.show.type }}</div>
+                        <div class="ui basic label">{{ selectedEvent.show.duration }} minutes</div>
+                      </div>
+                    </div>
+                    <div class="description">
+                      <p style="color: white">{{ selectedEvent.show.description }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+      </transition>
+      
+      <transition mode="out-in" name="fade">
+        <div class="required field" v-if="event_id">
             <label>Tickets</label>
             <sui-dropdown fluid selection direction="upward"
                           multiple 
@@ -442,19 +471,17 @@
           </div>
       </transition>
       <transition mode="out-in" name="fade">
-        <div id="tickets" v-if="selectedTickets  && selectedTickets.length > 0">
+        <div id="tickets" v-if="!isLoading && selectedTickets  && selectedTickets.length > 0">
           <table class="ui selectable single line very compact table">
             <thead>
               <tr class="header">
                 <th>Ticket</th>
                 <th>Amount / Price</th>
+                <th></th>
               </tr>
             </thead>
             <tbody name="fade" is="transition-group" mode="out-in">
-              <tr v-for="ticket in selectedTickets" 
-                  :key="ticket.id" 
-                  
-              >
+              <tr v-for="ticket in selectedTickets" :key="ticket.id">
                 <td>
                   <div class="ui small header">
                     <i class="ticket icon"></i>
@@ -467,12 +494,12 @@
                 <td>
                   <div class="ui right labeled input">
                     <input type="hidden">
-                    <input type="number" 
+                    <input type="text" 
                            size="1"
                            min="0"
-                           max="180" 
+                           :max="selectedEvent.seats" 
                            placeholder="Amount"
-                           @change="ticket.event = { id: event }" 
+                           @change="ticket.event = { id: event_id }" 
                            v-model.number="ticket.amount"
                            >
                     <div class="ui basic label">
@@ -480,13 +507,21 @@
                     </div>
                   </div>
                 </td>
+                <td>
+                  <h5 class="ui header" style="margin-bottom:0">
+                    <div class="sub header">
+                        0 <span style="float:right">{{ selectedEvent.seats }}</span>
+                    </div>
+                  </h5>
+                  <input type="range" v-model.number="ticket.amount" min="0" :max="selectedEvent.seats">
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
       </transition>
       
-    </div>
+    </sui-segment>
   </template>
 
   <template id="observer">
@@ -660,17 +695,17 @@
                              style="width:100%">
                     </sui-form-field>
                     <sui-form-field>
-                      <sui-dropdown placeholder="Customer" search :options="customers" direction="downward"
+                      <sui-dropdown placeholder="All Customers" search :options="customers" direction="downward"
                                     v-model="query.customer_id" fluid selection>
                       </sui-dropdown>
                     </sui-form-field>
                     <sui-form-field>
-                      <sui-dropdown placeholder="Organization" search :options="organizations" direction="downward" 
+                      <sui-dropdown placeholder="All Organizations" search :options="organizations" direction="downward" 
                                     v-model="query.organization_id" fluid selection>
                       </sui-dropdown>
                     </sui-form-field>
                     <sui-form-field>
-                      <sui-dropdown placeholder="All Sale Status" search :options="statuses" direction="downward"
+                      <sui-dropdown placeholder="All Sale Statuses" search :options="statuses" direction="downward"
                                     v-model="query.status" fluid selection>
                       </sui-dropdown>
                     </sui-form-field>
@@ -699,7 +734,7 @@
         <sui-loader content="Loading..."></sui-loader>
       </sui-dimmer>
 
-      <div v-if="this.sales.length > 0">  
+      <div v-if="sales.length > 0">  
         <transition-group name="list" tag="div">
           <div :class="`ui ${sale.status} sale segment`" v-for="sale in sales" :key="sale.id" 
               :style="getSaleColor(sale.status)" 
@@ -711,11 +746,10 @@
         </transition-group>
       </div>
 
-      <transition name="fade" mode="out-in">
-        <div class="ui message" v-if="this.sales.length == 0">
-          Your search has returned no results.
-        </div>
-      </transition>
+      <div class="ui message" v-if="sales.length == 0">
+        <p>Your search has returned no results.</p>
+      </div>
+      
 
       <observer @intersect="fetchSales"></observer>
 
