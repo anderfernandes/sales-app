@@ -57,7 +57,7 @@ Vue.mixin({
 
 Vue.prototype.$dateFormat = dateFormat
 
-const getDefaultState = () => ({
+let getDefaultState = () => ({
 		creator_id        : 3,
 		settings          : [],
     events            : [],
@@ -140,7 +140,10 @@ const store = new Vuex.Store({
       state.message = message
     },
     RESET(state) {
-      Object.assign(state, getDefaultState)
+      const s = getDefaultState()
+      Object.keys(s).forEach(key => {
+        state[key] = s[key]
+      })
     },
     SET_SELECTED_EVENTS_OPTIONS(state, payload) {
       Vue.set(state.selectedEventsOptions, payload.index, payload.eventOptions)
@@ -552,7 +555,7 @@ const store = new Vuex.Store({
         const response = await axios.get(`${SERVER}/api/settings`)
         let tax = parseFloat(response.data.tax) / 100
         await context.commit('SET_SETTINGS', { tax: tax })
-        await context.commit('HAS_SETTINGS', true)
+        //await context.commit('HAS_SETTINGS', true)
       } catch (error) {
         alert(`Error in actions.fetchSettings: ${ error.message }`)
       }
@@ -567,7 +570,7 @@ const store = new Vuex.Store({
 					icon : payment_method.icon
 				}))
 				await context.commit("SET_PAYMENT_METHODS", paymentMethods)
-				await context.commit("HAS_PAYMENT_METHODS", true)
+				//await context.commit("HAS_PAYMENT_METHODS", true)
       } catch (error) {
         alert(`Error in actions.fetchSettings: ${ error.message }`)
       }
@@ -587,7 +590,7 @@ const store = new Vuex.Store({
           }
         })
         await context.commit("SET_CUSTOMER_OPTIONS", customerOptions)
-        await context.commit("HAS_CUSTOMER_OPTIONS", true)
+        //await context.commit("HAS_CUSTOMER_OPTIONS", true)
       } catch (error) {
         alert(`Error in actions.fetchSettings: ${ error.message }`)
       }
@@ -601,7 +604,7 @@ const store = new Vuex.Store({
           value: grade.id,
         }))
         await context.commit("SET_GRADE_OPTIONS", gradeOptions)
-        await context.commit("HAS_GRADE_OPTIONS", true)
+        //await context.commit("HAS_GRADE_OPTIONS", true)
       } catch (error) {
         alert(`Error in actions.fetchGrades: ${ error.message }`)
       }
@@ -610,8 +613,8 @@ const store = new Vuex.Store({
       try {
         const response = await axios.get(`${SERVER}/api/products`)
         await context.commit("SET_PRODUCT_OPTIONS", response.data.data)
-        await context.commit("HAS_PRODUCT_OPTIONS", true)
-        await context.commit("SET_IS_LOADING")
+        //await context.commit("HAS_PRODUCT_OPTIONS", true)
+        //await context.commit("SET_IS_LOADING")
       } catch (error) {
         alert(`Error in actions.fetchProducts: ${ error.message }`)
       }
@@ -669,7 +672,7 @@ const Modal = Vue.component("modal", {
       return errors
     },
   },
-  beforeDestroyed() {
+  beforeDestroy() {
     this.$store.dispatch("setMessage", "")
     this.$store.dispatch("setErrors", {})
   },
@@ -753,10 +756,21 @@ const EventForm = Vue.component("event-form", {
       } catch (error) {
         alert(`fetchTicketTypes in EventForm failed: ${error.message}`)
       }
-		},
+    },
+    async resetComputed() {
+      delete this.selectedEventOptions
+      delete this.selectedEvent
+      delete this.selectedTickets
+      delete this.eventOptions
+      delete this.tickets
+      delete this.ticketOptions
+      delete this.date
+      delete this.event_id
+    },
   },
   watch : {
-    event_id(newValue, oldValue) { this.selectedEvent = "" }
+    event_id(newValue, oldValue) { this.selectedEvent = "" },
+    tickets() { this.$store.dispatch("calculateTotals") }
   },
 	computed: {
     selectedEventOptions: {
@@ -836,9 +850,9 @@ const EventForm = Vue.component("event-form", {
     this.selectedEvent = null
     this.isLoading = await false
 	},
-	async updated() {
-    await this.$store.dispatch("calculateTotals")
-  },
+  async beforeDestroy() {
+    this.resetComputed()
+  }
 })
 
 // Sales Form
@@ -864,7 +878,25 @@ const SalesForm = Vue.component("sales-form", {
     this.isLoading = false
   },
 	async updated() {
-    await this.$store.dispatch("calculateTotals")
+    //await this.$store.dispatch("calculateTotals")
+  },
+  async beforeDestroy() {
+    await this.resetComputed()
+    await this.$store.dispatch("reset")
+  },
+  watch : {
+    selectedProducts() { this.$store.dispatch("calculateTotals") },
+    payments() { this.$store.dispatch("calculateTotals") },
+    products() { this.$store.dispatch("calculateTotals") },
+    taxable() { this.$store.dispatch("calculateTotals") },
+    subtotal() { this.$store.dispatch("calculateTotals") },
+    tax() { this.$store.dispatch("calculateTotals") },
+    total() { this.$store.dispatch("calculateTotals") },
+    tendered() { this.$store.dispatch("calculateTotals") },
+    paid() { this.$store.dispatch("calculateTotals") },
+    balance() { this.$store.dispatch("calculateTotals") },
+    change_due() { this.$store.dispatch("calculateTotals") },
+
   },
 	computed: {
     selectedProducts: {
@@ -1032,34 +1064,34 @@ const SalesForm = Vue.component("sales-form", {
   methods: {
     // reset computed properties
     async resetComputed() {
-      this.selectedProducts = await []
-      this.activeTab        = await ""
-      this.memo             = await ""
-      this.memos            = await []
-      this.payments         = await []
+      await delete this.selectedProducts
+      delete this.activeTab
+      delete this.memo 
+      delete this.memos
+      delete this.payments
       //this.productOptions   = await []
-      this.products         = await []
+      delete this.products
       //this.taxableOptions   = await []
-      this.taxable          = await 0
+      delete this.taxable
       //this.subtotal         = await null
       //this.tax              = await null
       //this.total            = await null
-      this.tendered         = await 0
-      this.paid             = await 0
+      delete this.tendered
+      delete this.paid
       //this.balance          = await null
       //this.change_due       = await null
       //this.settings         = await []
       //this.paymentMethods   = await []
-      this.paymentMethod    = await null
+      delete this.paymentMethod
       //this.sellToOptions    = await []
-      this.sellTo           = await null
-      this.saleStatus       = await "open"
+      await delete this.sellTo  
+      delete this.saleStatus
       //this.saleStatuses     = await []
-      this.customer         = await null
+      delete this.customer 
       //this.customerOptions  = await []
-      this.grades           = await []
+      delete this.grades  
       //this.gradeOptions     = await []
-      this.reference        = await []
+      delete this.reference 
       //this.numberOfEvents   = await 0
       //this.errors           = await []
       //this.isValid          = await false
@@ -1333,10 +1365,6 @@ const Index = Vue.component("index", {
 // Create Page
 const Create = Vue.component("create", { 
   template: "#create",
-  async beforeDestroy() {
-    await this.$store.dispatch("reset")
-    console.log("create before destroyed")
-  },
 })
 
 // Show Page
@@ -1377,10 +1405,6 @@ const Show = Vue.component("show", {
 // Update Page
 const Edit = Vue.component("update", { 
   template: "#edit",
-  async beforeDestroy() {
-    await this.$store.dispatch("reset")
-    console.log("edit before destroyed")
-  },
 })
 
 // Defining routes
