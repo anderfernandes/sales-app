@@ -296,8 +296,6 @@ const store = new Vuex.Store({
       Vue.set(state, "selectedProducts", selectedProducts)
     },
     SET_TICKETS(state, payload) {
-      //state.tickets         = tickets
-      //state.selectedTickets = []
       
       // Set tickets for the event
       state.tickets.splice(payload.index, 1, payload.tickets)
@@ -307,8 +305,11 @@ const store = new Vuex.Store({
 
       state.tickets[payload.index].forEach(ticket_id => {
         let t = state.availableTickets.find(ticket => ticket.id == ticket_id)
+        t.event = payload.event
         selectedTickets.push(t)
       })
+
+      console.log(selectedTickets)
 
       state.selectedTickets.splice(payload.index, 1, selectedTickets)
     },
@@ -769,8 +770,10 @@ const EventForm = Vue.component("event-form", {
     },
   },
   watch : {
-    event_id(newValue, oldValue) { this.selectedEvent = "" },
-    tickets() { this.$store.dispatch("calculateTotals") }
+    event_id(newValue, oldValue) { 
+      this.selectedEvent = "" 
+      this.tickets = []
+    },
   },
 	computed: {
     selectedEventOptions: {
@@ -800,6 +803,7 @@ const EventForm = Vue.component("event-form", {
               : `${ this.eventOptions.length } ${ this.eventOptions.length == 1 ? 'event' : 'events'} found` 
     },
     selectedTickets() {
+      this.$store.dispatch("calculateTotals")
       return this.$store.getters.selectedTickets[ this.$vnode.key - 1 ]
     },
     eventOptions: {
@@ -809,7 +813,7 @@ const EventForm = Vue.component("event-form", {
     tickets: {
       set(tickets) { 
         this.$store.dispatch("setTickets", {
-          event: { id: this.event },
+          event: { id: this.event_id },
           index: this.$vnode.key - 1, 
           tickets
         }) 
@@ -849,10 +853,7 @@ const EventForm = Vue.component("event-form", {
     }
     this.selectedEvent = null
     this.isLoading = await false
-	},
-  async beforeDestroy() {
-    this.resetComputed()
-  }
+  },
 })
 
 // Sales Form
@@ -864,7 +865,7 @@ const SalesForm = Vue.component("sales-form", {
   template: "#sales-form",
   components: { EventForm },
   async created() {
-    await this.resetComputed()
+    //await this.resetComputed()
 		await this.$store.dispatch("fetchSettings")
 		await this.$store.dispatch("fetchCustomers")
 		await this.$store.dispatch("fetchGrades")
@@ -881,11 +882,10 @@ const SalesForm = Vue.component("sales-form", {
     //await this.$store.dispatch("calculateTotals")
   },
   async beforeDestroy() {
-    await this.resetComputed()
+    //await this.resetComputed()
     await this.$store.dispatch("reset")
   },
   watch : {
-    selectedProducts() { this.$store.dispatch("calculateTotals") },
     payments() { this.$store.dispatch("calculateTotals") },
     products() { this.$store.dispatch("calculateTotals") },
     taxable() { this.$store.dispatch("calculateTotals") },
@@ -901,7 +901,10 @@ const SalesForm = Vue.component("sales-form", {
 	computed: {
     selectedProducts: {
       set(selectedProducts) { this.$store.dispatch("setSelectedProducts", selectedProducts) },
-      get() { return this.$store.getters.selectedProducts }
+      get() { 
+        this.$store.dispatch("calculateTotals")
+        return this.$store.getters.selectedProducts 
+      }
     },
     activeTab: {
       set(index) { this.$store.dispatch("setActiveTab", index) },

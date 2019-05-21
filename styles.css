@@ -330,6 +330,8 @@ textarea {
 }
 
 /** CANCELED LABEL STYLES **/
+.ui.confirmed.sale.segment:hover .ui.red.label,
+.ui.confirmed.sale.segment .ui.red.label,
 .ui.complete.sale.segment:hover .ui.red.label,
 .ui.no.show.sale.segment:hover .ui.red.label,
 .ui.open.sale.segment:hover .ui.red.label,

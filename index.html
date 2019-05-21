@@ -27,16 +27,6 @@
     </transition>
   </div>
 
-  <!-- Sales Tab -->
-  <template id="sales-tab">
-    
-  </template>
-
-  <template id="payments-tab">
-
-  </template>
-
-  
   <!-- Sales Form Template -->
   <template id="sales-form">
     <div>
@@ -86,7 +76,7 @@
           <!-- Form -->
           <div class="ui container">
             <!--- Tabs --->
-            <div class="ui grid" style="margin-top:5em">
+            <div class="ui grid" style="margin-top:3rem">
               <div class="sixteen wide column">
                 <sui-tab :active-index.sync="activeTab">
                   <!-- Sale Tab -->
@@ -432,7 +422,7 @@
 
       </div>
       
-      <transition mode="out-in" name="fade">
+      <transition appear mode="out-in" name="fade">
         <div class="required field" v-if="eventOptions">
           <label>Event</label>
           <sui-dropdown fluid selection direction="upward"
@@ -441,7 +431,7 @@
                         :placeholder="placeholderMessage">
           </sui-dropdown>
         
-          <transition mode="out-in" name="fade">
+          <transition appear mode="out-in" name="fade">
             <div class="ui inverted segment" v-if="!isLoading && selectedEvent.show" style="border: white 1px solid">
               <div class="ui items">
                 <div class="item">
@@ -453,9 +443,17 @@
                       {{ selectedEvent.show.name }}
                     </div>
                     <div class="meta">
+                        <p style="color: white">
+                            {{ format(new Date(selectedEvent.start), $dateFormat.long) }}
+                            ({{ distanceInWords(new Date(), new Date(selectedEvent.start)) }})
+                        </p>
+                    </div>
+                    <div class="meta">
                       <div class="ui inverted header">
                         <div class="ui basic label" style="margin-left:0">{{ selectedEvent.show.type }}</div>
+                        <div class="ui basic label">{{ selectedEvent.type }}</div>
                         <div class="ui basic label">{{ selectedEvent.show.duration }} minutes</div>
+                        <div class="ui basic label">{{ selectedEvent.seats }} seats available</div>
                       </div>
                     </div>
                     <div class="description">
@@ -469,7 +467,7 @@
         </div>
       </transition>
       
-      <transition mode="out-in" name="fade">
+      <transition appear mode="out-in" name="fade">
         <div class="required field" v-if="event_id">
             <label>Tickets</label>
             <sui-dropdown fluid selection direction="upward"
@@ -480,7 +478,7 @@
             />
           </div>
       </transition>
-      <transition mode="out-in" name="fade">
+      <transition appear mode="out-in" name="fade">
         <div id="tickets" v-if="!isLoading && selectedTickets  && selectedTickets.length > 0">
           <table class="ui selectable single line very compact table">
             <thead>
@@ -490,31 +488,40 @@
                 <th></th>
               </tr>
             </thead>
-            <tbody name="fade" is="transition-group" mode="out-in">
+            <tbody name="fade" is="transition-group" appear mode="out-in">
               <tr v-for="ticket in selectedTickets" :key="ticket.id">
                 <td>
                   <div class="ui small header">
                     <i class="ticket icon"></i>
                     <div class="content">
-                      {{ ticket.name }}
+                      {{ ticket.name }} 
+                      <div class="ui small black label">
+                          $ {{ ticket.price.toFixed(2) }}
+                        <div class="detail">each</div>
+                      </div>
                       <div class="sub header">{{ ticket.description }}</div>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <div class="ui right labeled input">
-                    <input type="hidden">
-                    <input type="text" 
-                           size="1"
-                           min="0"
-                           :max="selectedEvent.seats" 
-                           placeholder="Amount"
-                           @change="ticket.event = { id: event_id }" 
-                           v-model.number="ticket.amount"
-                           >
-                    <div class="ui basic label">
-                      $ {{ ticket.price.toFixed(2) }} each
-                    </div>
+                  <div class="ui action input">
+                    <input type="text"
+                    size="1"
+                    min="0"
+                    :max="selectedEvent.seats" 
+                    placeholder="Amount"
+                    v-model.number="ticket.amount"
+                    >
+                    <sui-button basic color="green"
+                                icon="plus" 
+                                :disabled="ticket.amount == selectedEvent.seats" 
+                                @click.prevent="ticket.amount++">
+                    </sui-button>
+                    <sui-button basic color="red" 
+                                icon="minus" 
+                                :disabled="ticket.amount == 0" 
+                                @click.prevent="ticket.amount--">
+                    </sui-button>
                   </div>
                 </td>
                 <td>
@@ -610,9 +617,38 @@
   <template id="sale-box">
     <div class="item">
       <div class="content">
+        <!-- Header-->
         <div class="header">
+          <sui-dropdown class="icon small black" icon="sidebar" button pointing floating>
+            <sui-dropdown-menu>
+              <sui-dropdown-item @click="$router.push({name: 'show', params: { id: sale.id }})">
+                <sui-icon name="eye"></sui-icon>
+                View
+              </sui-dropdown-item>
+              <sui-dropdown-item @click="$router.push({name: 'edit', params: { id: sale.id }})">
+                <sui-icon name="edit"></sui-icon>
+                Edit
+              </sui-dropdown-item>
+              <sui-dropdown-item>
+                <sui-icon name="file"></sui-icon>
+                Confirmation
+              </sui-dropdown-item>
+              <sui-dropdown-item>
+                <sui-icon name="file"></sui-icon>
+                Invoice
+              </sui-dropdown-item>
+              <sui-dropdown-item>
+                <sui-icon name="file"></sui-icon>
+                Receipt
+              </sui-dropdown-item>
+              <sui-dropdown-item>
+                <sui-icon name="ticket"></sui-icon>
+                Tickets
+              </sui-dropdown-item>
+            </sui-dropdown-menu>
+          </sui-dropdown>
           Sale #{{ sale.id }} 
-          <div class="ui red label" v-if="sale.refund">
+          <div class="ui red label" v-if="sale.refund == true">
             <i class="reply icon"></i>
             refund
           </div>
@@ -621,7 +657,7 @@
             {{ sale.status }}
           </div>
           <div class="ui label">
-              $ {{ sale.total }} <div class="detail">total</div>
+              $ {{ parseFloat(sale.total).toFixed(2) }} <div class="detail">total</div>
           </div>
           <div class="ui label">
             $ {{ paid }} 
@@ -633,11 +669,13 @@
           <div class="ui top right attached basic label">
             <i class="user circle icon"></i>
             {{ sale.customer.firstname }} {{ sale.customer.lastname }}
+            <span v-if="sale.customer.role.id != 1">({{ sale.customer.role.name }})</span>
             <div class="detail" v-if="sale.organization.id != 1">
               <i class="university icon"></i>{{ sale.organization.name }}
             </div>
           </div>
         </div>
+        <!-- Meta -->
         <div class="meta">
           <i class="user circle icon"></i> 
           {{ sale.creator.firstname }} |
@@ -650,39 +688,38 @@
             ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
           </span>
         </div>
-        <div class="meta" v-if="sale.events.length > 0">
-          <div class="ui grid">
-            <div class="column" v-for="event in sale.events">
-              <div class="ui items">
-                <div class="item">
-                  <div class="ui tiny image">
-                    <img :src="event.show.cover" :alt="event.show.name">
-                  </div>
-                  <div class="content">
-                    <div class="meta">
-                      <div class="ui label" style="border: white 1px solid; background-color: transparent; color: white;">
-                        {{ event.show.type }}
-                      </div>
-                      <div class="ui event-type label" :style="{ color: 'white', backgroundColor: event.type.color, border: 'white 1px solid' }">
-                        {{ event.type.name }}
-                      </div>
+
+        <div class="ui two column grid" v-if="sale.events.length > 0">
+          <div class="column" v-for="event in sale.events">
+            <div class="ui items">
+              <div class="item">
+                <div class="ui tiny image">
+                  <img :src="event.show.cover" :alt="event.show.name">
+                </div>
+                <div class="content">
+                  <div class="meta">
+                    <div class="ui label" style="border: white 1px solid; background-color: transparent; color: white;">
+                      {{ event.show.type }}
                     </div>
-                    <div class="header">{{ event.show.name }}</div>
-                    <div class="meta">
-                        {{ format(new Date(event.start), $dateFormat.long) }}
-                        ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
+                    <div class="ui event-type label" :style="{ color: 'white', backgroundColor: event.type.color, border: 'white 1px solid' }">
+                      {{ event.type.name }}
+                    </div>
+                  </div>
+                  <div class="header">{{ event.show.name }}</div>
+                  <div class="meta">
+                      {{ format(new Date(event.start), $dateFormat.long) }}
+                      ({{ distanceInWords(new Date(), new Date(event.start)) }})
+                  </div>
+                  <div class="meta">
+                      <div class="ui label" v-for="product in sale.products" 
+                           style="border-color: white; background-color: transparent; color: white; border-width: 1px">
+                      <i class="box icon"></i>{{ product.name }}<div class="detail">
+                        {{ sale.products.filter(p => p == product).length }}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-        <div class="meta" v-if="sale.products.length > 0">
-          <div class="ui label" v-for="product in sale.products" 
-               style="border-color: white; background-color: transparent; color: white; border-width: 1px">
-            <i class="box icon"></i>{{ product.name }}<div class="detail">
-              {{ sale.products.filter(p => p == product).length }}
             </div>
           </div>
         </div>
@@ -745,7 +782,7 @@
       </sui-dimmer>
 
       <div v-if="sales.length > 0">  
-        <transition-group name="list" tag="div">
+        <transition-group name="list" tag="div" appear>
           <div :class="`ui ${sale.status} sale segment`" v-for="sale in sales" :key="sale.id" 
               :style="getSaleColor(sale.status)" 
               @click="$router.push({name: 'show', params: { id: sale.id }})">
@@ -756,12 +793,11 @@
         </transition-group>
       </div>
 
+      <observer @intersect="fetchSales"></observer>
+
       <div class="ui message" v-if="sales.length == 0">
         <p>Your search has returned no results.</p>
       </div>
-      
-
-      <observer @intersect="fetchSales"></observer>
 
       <sui-modal v-model="open" basic>
         <sui-header icon="info circle">Select the event type</sui-header>
