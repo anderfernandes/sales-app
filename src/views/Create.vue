@@ -1,5 +1,16 @@
 <template>
-  <div id="create">
-    <h1>Create</h1>
-  </div>
+  <sale-form></sale-form>
 </template>
+
+<script>
+
+  export default {
+    components: {
+      SaleForm : () => import('../components/forms/Sale')
+    },
+    async beforeDestroy() {
+      await this.$store.commit("RESET_CREATE")
+    }
+  }
+</script>
+

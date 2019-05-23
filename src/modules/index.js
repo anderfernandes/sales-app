@@ -18,6 +18,7 @@ export default {
     customers     : [],
     organizations : [],
     cashiers      : [],
+    event_types   : [],
     statuses      : saleStatuses,
     page          : 1,
     q             : "",
@@ -56,8 +57,13 @@ export default {
       state.isLoading = payload
     },
 
-    // SET_SHOW_MODAL
-    SET_SHOW_MODAL(state, payload) {
+    // SET_EVENT_TYPES
+    SET_EVENT_TYPES(state, payload) {
+      Object.assign(state.event_types, payload)
+    },
+
+    // TOGGLE_MODAL
+    TOGGLE_MODAL(state, payload) {
       state.showModal = payload
     },
   },
@@ -65,7 +71,7 @@ export default {
   actions: {
 
     // Fetches sales, pagination aware
-    async fetchSales({ state, commit, rootState }) {
+    async fetchSales({ state, commit }) {
       try {
         let url = state.q.length == 0
                     ? `${SERVER}/api/sales?sort=desc&orderBy=id&page=${state.page}`
@@ -80,7 +86,7 @@ export default {
     },
 
     // Fetch customers
-    async fetchCustomers({ state, commit, rootState }) {
+    async fetchCustomers({ commit }) {
       try {
         const response = await axios.get(`${SERVER}/api/customers`)
         let customers = response.data.map(customer => ({
@@ -95,7 +101,7 @@ export default {
     },
 
     // Fetch organizations
-    async fetchOrganizations({ state, commit, rootState }) {
+    async fetchOrganizations({ commit }) {
       try {
         const response = await axios.get(`${SERVER}/api/organizations`)
         let organizations = response.data.map(organization => ({
@@ -115,10 +121,10 @@ export default {
     },
 
     // Fetch cashiers
-    async fetchCashiers({ state, commit, rootState }) {
+    async fetchCashiers({ commit }) {
       try {
         const response = await axios.get(`${SERVER}/api/staff`)
-        let cashiers = await response.data.map(cashier => ({
+        let cashiers   = await response.data.map(cashier => ({
           icon  : "user circle",
           key   : cashier.id,
           value : cashier.id,
@@ -135,14 +141,24 @@ export default {
       }
     },
 
+    // Fetch event types
+    async fetchEventTypes({ commit }) {
+      try {
+        const response = await axios.get(`${SERVER}/api/event-types`)
+        commit("SET_EVENT_TYPES", response.data)
+      } catch (error) {
+        alert(`Error in actions.fetchEventTypes: ${error.message}`)
+      }
+    },
+
     // Set isLoading
     setIsLoading(context, payload) {
       context.commit("SET_IS_LOADING", payload)
     },
 
     // Set showModal
-    setShowModal(context, payload) {
-      context.commit("SET_SHOW_MODAL", payload)
+    toggleModal(context, payload) {
+      context.commit("TOGGLE_MODAL", payload)
     },
 
   },
@@ -153,6 +169,7 @@ export default {
     customers        : state => state.customers,
     organizations    : state => state.organizations,
     cashiers         : state => state.cashiers,
+    event_types      : state => state.event_types,
     statuses         : state => state.statuses,
     page             : state => state.page,
     q                : state => state.q,

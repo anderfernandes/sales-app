@@ -51,11 +51,13 @@
       tax() {
         if (this.sale.tax != undefined)
           return this.sale.tax.toLocaleString("en-US", this.currencySettings)
+        else return 0
       },
       paid() {
         if (this.sale.payments != undefined)
           return this.sale.payments.reduce((total, current) => total + parseFloat(current.paid), 0)
                      .toLocaleString("en-US", this.currencySettings)
+        else return 0
       },
       balance() {
         return (parseFloat(this.sale.total) - parseFloat(this.paid)).toLocaleString("en-US", this.currencySettings)

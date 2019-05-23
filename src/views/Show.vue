@@ -1,9 +1,34 @@
 <template>
   <div class="ui container">
+    
+    <sui-dimmer inverted :active="isLoading">
+      <sui-loader :content="`Loading Sale #${$route.params.id}...`"></sui-loader>
+    </sui-dimmer>
+
     <div class="ui basic segment">
       
-      <modal>
-        <p>Hey!!!</p>
+      <modal id="refund">
+        <div class="ui icon header" style="padding-bottom: 0">
+          <i class="refresh icon"></i> Refund Sale
+          <div class="sub header" style="color:white">You are about to refund this sale</div>
+        </div>
+        <div class="content" style="padding-top: 0">
+          <div class="ui inverted form">
+            <div class="required field">
+              <label for="memo">Memo</label>
+              <textarea rows="2" v-model="refundMemo"
+                        placeholder="Explain with at least 10 characters why you are refunding this sale"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <div class="ui red cancel inverted button" @click="$store.commit('TOGGLE_MODAL', false)">
+            <i class="remove icon"></i> Cancel Refund
+          </div>
+          <sui-button color="yellow" inverted icon="refresh" :disabled="refundMemo == null || refundMemo.length < 10">
+            Confirm Refund of $ {{ sale.total }}
+          </sui-button>
+        </div>
       </modal>
 
       <div class="ui black basic button" @click="$router.push({ name: 'index' })">
@@ -37,14 +62,10 @@
         </sui-dropdown-menu>
       </sui-dropdown>
 
-      <div class="ui right floated red button" @click="showModal">
+      <div class="ui right floated red button" @click="$store.commit('TOGGLE_MODAL', true)">
         <i class="refresh icon"></i>
         Refund
       </div>
-
-      <sui-dimmer :active="isLoading" inverted>
-        <sui-loader content="Loading..."></sui-loader>
-      </sui-dimmer>
 
       <h4 class="ui center aligned horizontal divider header">
         <i class="info circle icon"></i> Sale Data
@@ -304,13 +325,15 @@
   
   export default {
     data: () => ({
-      sale            : {},
+      sale       : {},
+      refundMemo : null,
     }),
     components: { 
       SaleTotals: () => import('../components/SaleTotals'),
       Modal     : () => import('../components/Modal')
     },
     async created() {
+      document.title = `Astral - Sale #${this.sale.id}`
       this.isLoading = await true
       await this.fetchSale()
       this.isLoading = await false
@@ -318,12 +341,11 @@
     computed: {
       // Loading spinner
       isLoading: {
-        set(value) { this.$store.dispatch("setIsLoading", value) },
+        set(value) { this.$store.commit("SET_IS_LOADING", value) },
         get()      { return this.$store.getters.isLoading }
       },
     },
     methods : {
-      showModal() { this.$store.dispatch("setShowModal", true) },
       async fetchSale() {
         try {
           const response = await axios.get(`${SERVER}/api/sale/${this.$route.params.id}`)
@@ -335,4 +357,9 @@
     }
   }
 </script>
+
+<style scoped>
+  textarea { font: inherit }
+</style>
+
 
