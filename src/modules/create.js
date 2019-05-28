@@ -10,6 +10,8 @@ let getDefaultState = () => ({
       customer       : null,
       grades         : [],
       products       : [],
+      events         : [],
+      tickets        : [],
       taxable        : 0,
       payment_method : null,
       tendered       : 0,
@@ -36,6 +38,7 @@ let getDefaultState = () => ({
 			{ key: "Yes", text: "Yes", value: 1 },
     ],
 
+    numberOfEvents  : 1,
     grades          : [],
     products        : [],
     payment_methods : [],
@@ -96,6 +99,13 @@ export default {
         productTotals = state.sale.products.reduce((total, product) =>
           (total + (product.amount * product.price)), 0)
 
+      // Calculating ticket totals
+      state.sale.tickets.forEach(eventTickets => {
+        ticketTotals += eventTickets.reduce((total, ticket) => 
+          (total + (ticket.amount * ticket.price)), 0
+        )
+      })
+
       let subtotal   = productTotals + ticketTotals
       let total      = subtotal + tax
       let balance    = (total - state.sale.tendered) > 0 ? total - state.sale.tendered : 0
@@ -108,6 +118,30 @@ export default {
         balance    : balance,
         change_due : change_due,
       })
+    },
+
+    // SET_EVENT
+    SET_EVENT(state, payload) {
+      state.sale.events.splice(payload.index, 1, payload.event)
+    },
+
+    // SET_TICKETS
+    SET_TICKETS(state, payload) {
+      state.sale.tickets.splice(payload.index, 1, payload.tickets)
+      // payload.tickets is an array of selected tickets for event # payload.index in sale
+    },
+
+    REMOVE_TICKET(state, payload) {
+      // Find ticket
+      let i = state.sale.tickets[payload.index].findIndex(ticket => ticket.id == payload.id)
+      // Reset count
+      Object.assign(state.sale.tickets[payload.index][i], { amount: 1 })
+      // Remove from array
+      state.sale.tickets[payload.index].splice(i, 1)
+    },
+
+    SET_NUMBER_OF_EVENTS(state, payload) {
+      state.numberOfEvents++
     },
 
   },
@@ -191,5 +225,6 @@ export default {
     products        : state => state.products,
     payment_methods : state => state.payment_methods,
     settings        : state => state.settings,
+    numberOfEvents  : state => state.numberOfEvents,
   },
 }

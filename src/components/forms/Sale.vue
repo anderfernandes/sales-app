@@ -38,268 +38,289 @@
           </div>
           <!-- Form -->
           <div class="ui container">
-            <!--- Tabs --->
-            <div class="ui grid" style="margin-top:3rem">
-              <div class="sixteen wide column">
-                <sui-tab :active-index.sync="active_tab">
-                  <!-- Sale Tab -->
-                  <sui-tab-pane title="Sale" icon="dollar">
-                    <sui-form>
-                      <sui-form-field required>
-                        <label>Sell to</label>
-                        <sui-dropdown fluid selection direction="upward"
-                                      v-model="sale.sell_to"
-                                      :options="sell_to"
-                                      placeholder="Sell To"
-                                      :error="errors.hasOwnProperty('sell_to')"></sui-dropdown>
-                        <transition mode="out-in" name="fade">
-                          <sui-label basic color="red" pointing 
-                                      v-if="errors.hasOwnProperty('sell_to')">
-                            {{ errors.sell_to[0] }}
-                          </sui-label>
-                        </transition>
-                      </sui-form-field>
-                      <sui-form-field required>
-                        <label>Customer</label>
-                        <sui-dropdown fluid direction="upward"
-                                      v-model="sale.customer"
-                                      :options="customers"
-                                      placeholder="Customer"
-                                      search selection></sui-dropdown>
-                        <transition mode="out-in" name="fade">
-                          <sui-label basic color="red" pointing 
-                                      v-if="errors.hasOwnProperty('customer')">
-                            {{ errors.customer[0] }}
-                          </sui-label>
-                        </transition>
-                      </sui-form-field>
-                      <sui-form-field>
-                        <label>Grades</label>
-                        <sui-dropdown fluid multiple direction="upward"
-                                      v-model="sale.grades"
-                                      :options="grades"
-                                      placeholder="Grades"
-                                      selection 
+            
+            <br>
+
+            <!--- Sale --->
+            <div class="ui segment">
+              <div class="ui horizontal divider header">
+                <i class="dollar icon"></i> Sale
+              </div>
+              <sui-form>
+                <sui-form-field required>
+                  <label>Sell to</label>
+                  <sui-dropdown fluid selection direction="upward"
+                                v-model="sale.sell_to"
+                                :options="sell_to"
+                                placeholder="Sell To"
+                                :error="errors.hasOwnProperty('sell_to')"></sui-dropdown>
+                  <transition mode="out-in" name="fade">
+                    <sui-label basic color="red" pointing 
+                                v-if="errors.hasOwnProperty('sell_to')">
+                      {{ errors.sell_to[0] }}
+                    </sui-label>
+                  </transition>
+                </sui-form-field>
+                <sui-form-field required>
+                  <label>Customer</label>
+                  <sui-dropdown fluid direction="upward"
+                                v-model="sale.customer"
+                                :options="customers"
+                                placeholder="Customer"
+                                search selection></sui-dropdown>
+                  <transition mode="out-in" name="fade">
+                    <sui-label basic color="red" pointing 
+                                v-if="errors.hasOwnProperty('customer')">
+                      {{ errors.customer[0] }}
+                    </sui-label>
+                  </transition>
+                </sui-form-field>
+                <sui-form-field>
+                  <label>Grades</label>
+                  <sui-dropdown fluid multiple direction="upward"
+                                v-model="sale.grades"
+                                :options="grades"
+                                placeholder="Grades"
+                                selection 
+                  />
+                </sui-form-field>
+  
+                <!-- Event Form -->
+                <div id="events">
+                  <transition-group mode="out-in" name="fade">    
+                    <event-form v-if="sale.customer != null" 
+                                v-for="(n, i) in numberOfEvents"
+                                :key="i"
+                    />
+                  </transition-group>
+                </div>
+  
+                <br />
+
+                <!-- Add Another Event -->
+                <transition appear mode="out-in" name="fade">
+                  <sui-button v-if="(sale.customer != null)"
+                              label-position="left" 
+                              color="black" 
+                              icon="calendar plus alternate"
+                              @click.prevent="addEvent"
+                              >
+                    Add Another Event
+                  </sui-button>
+                </transition>
+                
+                <!-- Products -->
+                <div class="ui segment" v-if="products.length > 0">
+                  <div class="ui horizontal divider header">
+                    <i class="box icon"></i> Products
+                  </div>
+                  <div class="ui form">
+                      <div class="field">
+                        <sui-dropdown fluid selection multiple search
+                                      placeholder="Select products"
+                                      :options="products"
+                                      v-model="sale.products" v-if="products[0].icon != undefined"
                         />
-                      </sui-form-field>
-        
-                      <!-- Event Form -->
-                      <div id="events">
-                        <transition-group mode="out-in" name="fade">
-                          
-                        </transition-group>
-                      </div>
-        
-                      <br />
-                      <!-- Add Another Event -->
-                      
-                      <!-- Products -->
-                      <div class="ui segment" v-if="products.length > 0">
-                        <div class="ui horizontal divider header">
-                          <i class="box icon"></i> Products
-                        </div>
-                        <div class="ui form">
-                            <div class="field">
-                              <sui-dropdown fluid selection multiple search
-                                            placeholder="Select products"
-                                            :options="products"
-                                            v-model="sale.products" v-if="products[0].icon != undefined"
-                              />
-                          </div>
-                        </div>
-                        <transition mode="out-in" name="fade">
-                          <div id="products" v-if="sale.products.length > 0">
-                            <br>
-                            <table class="ui selectable single line very compact table">
-                            <thead>
-                              <tr class="header">
-                                <th>Product</th>
-                                <th>Amount / Price</th>
-                              </tr>
-                            </thead>
-                              <tbody name="fade" is="transition-group" mode="out-in">
-                                <tr v-for="product in sale.products"
-                                    :key="product.id">
-                                  <td>
-                                    <div class="ui small header">
-                                    <img :src="product.cover">
-                                      <div class="content">
-                                        {{ product.name }}
-                                        <div class="ui tiny black label">
-                                          {{ product.type.name }}
-                                        </div>
-                                        <div class="sub header">
-                                          {{ product.description }}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td>
-                                    <div class="ui black basic icon button" 
-                                      @click="product.amount >= 0 ? product.amount++ : product.amount = 0">
-                                      <i class="plus icon"></i>
-                                    </div>
-                                    <div class="ui black basic icon button" 
-                                      @click="product.amount = 0">
-                                      <i class="refresh icon"></i>
-                                    </div>
-                                    <div class="ui black basic icon button" 
-                                      @click="product.amount >= 0 ? product.amount-- : product.amount = 0">
-                                      <i class="minus icon"></i>
-                                    </div>
-                                    &nbsp;
-                                    <div class="ui right labeled input">
-                                      <input type="text" 
-                                             style="width:auto"
-                                             size="1"
-                                             min="0" 
-                                             v-model.number="product.amount"
-                                             @input="$store.commit('CALCULATE_TOTALS')" 
-                                             placeholder="Amount">
-                                      <div class="ui basic label">
-                                        $ {{ product.price.toFixed(2) }} each
-                                      </div>
-                                    </div>
-                                    &nbsp;
-                                    <div class="ui red basic icon button" @click="$store.commit('REMOVE_PRODUCT', product)">
-                                      <i class="trash icon"></i>
-                                    </div>
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
-                        </transition>
-                      </div>
-                    </sui-form>
-                  </sui-tab-pane>
-                  <!--- Payment Tab --->
-                  <sui-tab-pane title="Payment" icon="money">
-                    <sui-form>
-                      <div class="four fields">
-                        <div class="required field">
-                          <label>Taxable</label>
-                          <sui-dropdown v-model="sale.taxable" direction="upward"
-                                        :options="taxable"
-                                        placeholder="Taxable"
-                                        selection />
-                        </div>
-                      </div>
-                      <div class="four fields">
-                        <div class="field">
-                          <label>Payment Method</label>
-                          <sui-dropdown fluid direction="upward"
-                                        v-model="sale.payment_method"
-                                        :options="payment_methods"
-                                        placeholder="Payment Method"
-                                        selection />
-                        </div>
-                        <div class="field">
-                          <label>Tendered</label>
-                          <div class="ui labeled input">
-                            <div class="ui basic label">$</div>
-                            <input type="text" placeholder="Tendered" 
-                              v-model.number="sale.tendered">
-                          </div>
-                        </div>
-                        <sui-form-field :error="parseFloat(change_due) < 0">
-                          <label>Change Due</label>
-                          <div class="ui labeled input">
-                            <div class="ui basic label">$</div>
-                            <input placeholder="Change Due" v-model="change_due" readonly>
-                          </div>
-                        </sui-form-field>
-                        <sui-form-field :error="errors.hasOwnProperty('reference')">
-                          <label>Reference</label>
-                          <input type="tel" placeholder="Reference" v-model.number="sale.reference">
-                          <transition mode="in-out" name="fade">
-                              <sui-label basic color="red" pointing 
-                              v-if="errors.hasOwnProperty('reference')">
-                                {{ errors.reference[0] }}
-                              </sui-label>
-                          </transition>
-                        </sui-form-field>
-                      </div>
-                      <div class="ui small horizontal divider header" v-if="sale.payments.length > 0">
-                        <i class="money icon"></i>
-                        Payments
-                      </div>
-                      <table class="ui selectable single table" v-if="sale.payments.length > 0">
-                        <thead>
-                          <tr>
-                            <th>#</th>
-                            <th>Method</th>
-                            <th>Amount Paid</th>
-                            <th>Date</th>
-                            <th>Cashier</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr v-for="payment in sale.payments" :key="payment.id">
+                    </div>
+                  </div>
+                  <transition mode="out-in" name="fade">
+                    <div id="products" v-if="sale.products.length > 0">
+                      <br>
+                      <table class="ui selectable single line very compact table">
+                      <thead>
+                        <tr class="header">
+                          <th>Product</th>
+                          <th>Amount / Price</th>
+                        </tr>
+                      </thead>
+                        <tbody name="fade" is="transition-group" mode="out-in">
+                          <tr v-for="product in sale.products"
+                              :key="product.id">
                             <td>
-                              <div class="ui header">
-                                {{ payment.id }}
+                              <div class="ui small header">
+                              <img :src="product.cover">
+                                <div class="content">
+                                  {{ product.name }}
+                                  <div class="ui tiny black label">
+                                    {{ product.type.name }}
+                                  </div>
+                                  <div class="sub header">
+                                    {{ product.description }}
+                                  </div>
+                                </div>
                               </div>
                             </td>
-                            <td><i class="cc visa icon"></i>
-                              {{ payment.method }}
-                            </td>
-                            <td>$ {{ payment.total }}</td>
                             <td>
-                                {{ format(new Date(payment.created_at), $dateFormat.long) }}
-                                ({{ distanceInWords(new Date(), new Date(payment.created_at)) }})
-                            </td>
-                            <td>
-                              <i class="user circle icon"></i>
-                              {{ payment.cashier.name }}
+                              <div class="ui black basic icon button" 
+                                @click="product.amount >= 0 ? product.amount++ : null">
+                                <i class="plus icon"></i>
+                              </div>
+                              <div class="ui black basic icon button" 
+                                @click="product.amount = 0">
+                                <i class="refresh icon"></i>
+                              </div>
+                              <div class="ui black basic icon button" 
+                                @click="product.amount >= 0 ? product.amount-- : null">
+                                <i class="minus icon"></i>
+                              </div>
+                              &nbsp;
+                              <div class="ui right labeled input">
+                                <input type="text" 
+                                        style="width:auto"
+                                        size="1"
+                                        min="0" 
+                                        v-model.number="product.amount"
+                                        @input="$store.commit('CALCULATE_TOTALS')" 
+                                        placeholder="Amount">
+                                <div class="ui basic label">
+                                  $ {{ product.price.toFixed(2) }} each
+                                </div>
+                              </div>
+                              &nbsp;
+                              <div class="ui red basic icon button" @click="$store.commit('REMOVE_PRODUCT', product)">
+                                <i class="trash icon"></i>
+                              </div>
                             </td>
                           </tr>
                         </tbody>
                       </table>
-                    </sui-form>
-                  </sui-tab-pane>
-                </sui-tab>
-                <!--- Memos --->
-                <div class="ui small horizontal divider header" v-if="sale.memos.length > 0">
-                  <i class="comments outline icon"></i>
-                  Memos
+                    </div>
+                  </transition>
                 </div>
-                <div class="ui comments">
-                  <div class="comment" v-for="memo in sale.memos" :key="memo.id">
-                    <div class="avatar">
-                      <i class="user circle big icon"></i>
-                    </div>
-                    <div class="content">
-                      <div class="author">
-                        {{ memo.author.name }}
-                        <div class="ui black label">{{ memo.author.role }}</div>
-                        <div class="metadata">
-                          {{ format(new Date(memo.created_at), $dateFormat.long) }}
-                          ({{ distanceInWords(new Date(), new Date(memo.created_at)) }})
-                        </div>
-                      </div>
-                      <div class="text">{{ memo.message }}</div>
-                    </div>
+              </sui-form>
+            </div>
+
+            <br>
+
+            <!--- Payments --->
+            <div class="ui segment">
+              <div class="ui horizontal divider header">
+                <i class="money icon"></i> Payments
+              </div>
+              <sui-form>
+                <div class="four fields">
+                  <div class="required field">
+                    <label>Taxable</label>
+                    <sui-dropdown v-model="sale.taxable" direction="upward"
+                                  :options="taxable"
+                                  placeholder="Taxable"
+                                  selection />
                   </div>
                 </div>
-                <div class="ui form">
+                <div class="four fields">
                   <div class="field">
-                    <label>Write a memo:</label>
-                    <textarea v-model="sale.memo" 
-                              cols="8" 
-                              rows="2" 
-                              placeholder="Write a memo" 
-                              style="margin-bottom:10em"></textarea>
+                    <label>Payment Method</label>
+                    <sui-dropdown fluid direction="upward"
+                                  v-model="sale.payment_method"
+                                  :options="payment_methods"
+                                  placeholder="Payment Method"
+                                  selection />
                   </div>
-                  <transition mode="out-in" name="fade">
-                      <sui-label basic color="red" pointing 
-                                  v-if="errors.hasOwnProperty('memo')">
-                        {{ errors.memo[0] }}
-                      </sui-label>
+                  <div class="field">
+                    <label>Tendered</label>
+                    <div class="ui labeled input">
+                      <div class="ui basic label">$</div>
+                      <input type="text" placeholder="Tendered" 
+                        v-model.number="sale.tendered">
+                    </div>
+                  </div>
+                  <sui-form-field :error="parseFloat(change_due) < 0">
+                    <label>Change Due</label>
+                    <div class="ui labeled input">
+                      <div class="ui basic label">$</div>
+                      <input placeholder="Change Due" v-model="change_due" readonly>
+                    </div>
+                  </sui-form-field>
+                  <sui-form-field :error="errors.hasOwnProperty('reference')">
+                    <label>Reference</label>
+                    <input type="tel" placeholder="Reference" v-model.number="sale.reference">
+                    <transition mode="in-out" name="fade">
+                        <sui-label basic color="red" pointing 
+                        v-if="errors.hasOwnProperty('reference')">
+                          {{ errors.reference[0] }}
+                        </sui-label>
                     </transition>
+                  </sui-form-field>
+                </div>
+                <div class="ui small horizontal divider header" v-if="sale.payments.length > 0">
+                  <i class="money icon"></i>
+                  Payments
+                </div>
+                <table class="ui selectable single table" v-if="sale.payments.length > 0">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Method</th>
+                      <th>Amount Paid</th>
+                      <th>Date</th>
+                      <th>Cashier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="payment in sale.payments" :key="payment.id">
+                      <td>
+                        <div class="ui header">
+                          {{ payment.id }}
+                        </div>
+                      </td>
+                      <td><i class="cc visa icon"></i>
+                        {{ payment.method }}
+                      </td>
+                      <td>$ {{ payment.total }}</td>
+                      <td>
+                          {{ format(new Date(payment.created_at), $dateFormat.long) }}
+                          ({{ distanceInWords(new Date(), new Date(payment.created_at)) }})
+                      </td>
+                      <td>
+                        <i class="user circle icon"></i>
+                        {{ payment.cashier.name }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </sui-form>
+            </div>
+
+            <!--- Memos --->
+            <div class="ui small horizontal divider header" v-if="sale.memos.length > 0">
+              <i class="comments outline icon"></i>
+              Memos
+            </div>
+            <div class="ui comments">
+              <div class="comment" v-for="memo in sale.memos" :key="memo.id">
+                <div class="avatar">
+                  <i class="user circle big icon"></i>
+                </div>
+                <div class="content">
+                  <div class="author">
+                    {{ memo.author.name }}
+                    <div class="ui black label">{{ memo.author.role }}</div>
+                    <div class="metadata">
+                      {{ format(new Date(memo.created_at), $dateFormat.long) }}
+                      ({{ distanceInWords(new Date(), new Date(memo.created_at)) }})
+                    </div>
+                  </div>
+                  <div class="text">{{ memo.message }}</div>
                 </div>
               </div>
             </div>
+            <div class="ui form">
+              <div class="field">
+                <label>Write a memo:</label>
+                <textarea v-model="sale.memo" 
+                          cols="8" 
+                          rows="2" 
+                          placeholder="Write a memo" 
+                          style="margin-bottom:10em"></textarea>
+              </div>
+              <transition mode="out-in" name="fade">
+                  <sui-label basic color="red" pointing 
+                              v-if="errors.hasOwnProperty('memo')">
+                    {{ errors.memo[0] }}
+                  </sui-label>
+                </transition>
+            </div>
+            
           </div>
           <!--- Totals --->
           <div class="ui grid">
@@ -381,7 +402,7 @@
 
 <script>
 
-  import { mapActions, mapGetters } from 'vuex'
+  import { mapActions, mapGetters, mapMutations } from 'vuex'
 
   export default {
     data: () => ({
@@ -397,7 +418,7 @@
     },
     components: {
       Modal     : () => import('../Modal'),
-      //EventForm : import('./EventSale'),
+      EventForm : () => import('./EventSale'),
     },
     async created() {
       document.title = "Astral -  Create New Sale"
@@ -413,13 +434,15 @@
     methods: {
       ...mapActions(['fetchCustomers', 'fetchOrganizations', 'fetchGrades', 'fetchProducts', 
         'fetchPaymentMethods', 'fetchSettings']),
+      ...mapMutations({ addEvent: 'SET_NUMBER_OF_EVENTS' }),
       submit(event) {
         event.preventDefault()
       }
     },
     computed : {
       ...mapGetters(['sale', 'customers', 'organizations', 'statuses', 'sell_to', 'taxable', 
-        'grades', 'products', 'payment_methods', 'errors', 'settings', 'currencySettings']),
+        'grades', 'products', 'payment_methods', 'errors', 'settings', 'currencySettings',
+        'numberOfEvents']),
       // Loading spinner
       isLoading: {
         set(value) { this.$store.commit("SET_IS_LOADING", value) },

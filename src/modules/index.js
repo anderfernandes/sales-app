@@ -92,7 +92,7 @@ export default {
         let customers = response.data.map(customer => ({
           key   : customer.id,
           value : customer.id,
-          text  : customer.name,
+          text  : `${customer.name} (${customer.role} ${ customer.organization.id == 1 ? '' : 'at ' + customer.organization.name })`,
         }))
         commit("SET_CUSTOMERS", customers)
       } catch (error) {
