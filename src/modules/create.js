@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const SERVER = "http://10.51.135.136:8000"
+const SERVER = "http://10.51.158.161:8000"
 
 let getDefaultState = () => ({
     // Sale data
@@ -96,11 +96,17 @@ export default {
         productTotals = state.sale.products.reduce((total, product) =>
           (total + (product.amount * product.price)), 0)
 
+      let subtotal   = productTotals + ticketTotals
+      let total      = subtotal + tax
+      let balance    = (total - state.sale.tendered) > 0 ? total - state.sale.tendered : 0
+      let change_due = (state.sale.tendered - total) > 0 ? state.sale.tendered - total : 0
 
       Object.assign(state.sale, {
-        tax      : tax, 
-        subtotal : productTotals + ticketTotals,
-        total    : productTotals + ticketTotals + tax,
+        tax        : tax, 
+        subtotal   : subtotal,
+        total      : total,
+        balance    : balance,
+        change_due : change_due,
       })
     },
 

@@ -202,11 +202,11 @@
                               v-model.number="sale.tendered">
                           </div>
                         </div>
-                        <sui-form-field :error="parseFloat(sale.change_due) < 0">
+                        <sui-form-field :error="parseFloat(change_due) < 0">
                           <label>Change Due</label>
                           <div class="ui labeled input">
                             <div class="ui basic label">$</div>
-                            <input placeholder="Change Due" v-model.number="sale.change_due" readonly>
+                            <input placeholder="Change Due" v-model="change_due" readonly>
                           </div>
                         </sui-form-field>
                         <sui-form-field :error="errors.hasOwnProperty('reference')">
@@ -343,7 +343,7 @@
                           <div class="ui inverted transparent left icon input">
                             <i class="dollar icon"></i>
                             <input style="color:white; font-weight:bold" type="text" 
-                                   :value="sale.paid">
+                                   :value="sale.paid.toLocaleString('en-US', currencySettings)">
                           </div>
                         </div>
                         <!--- Paid --->
@@ -352,7 +352,7 @@
                           <div class="ui inverted transparent left icon input">
                             <i class="dollar icon"></i>
                             <input style="color:white; font-weight:bold" type="text" 
-                                   :value="sale.tendered">
+                                   :value="sale.tendered.toLocaleString('en-US', currencySettings)">
                           </div>
                         </div>
                         <!-- Balance -->
@@ -361,7 +361,7 @@
                           <div class="ui inverted transparent left icon input">
                             <i class="dollar icon"></i>
                             <input style="color:white; font-weight:bold" type="text" 
-                                   :value="sale.balance">
+                                   :value="sale.balance.toLocaleString('en-US', currencySettings)">
                           </div>
                         </div>
                       </div>
@@ -393,6 +393,7 @@
         deep   : true,
       },
       "sale.taxable": function() { this.$store.commit('CALCULATE_TOTALS') },
+      "sale.tendered": function() { this.$store.commit('CALCULATE_TOTALS') },
     },
     components: {
       Modal     : () => import('../Modal'),
@@ -433,6 +434,9 @@
       total() { 
         return this.sale.total.toLocaleString("en-US", this.currencySettings)    
       },
+      change_due() {
+        return this.sale.change_due.toLocaleString("en-US", this.currencySettings)    
+      }
     },
   }
 </script>
