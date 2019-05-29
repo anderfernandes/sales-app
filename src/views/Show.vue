@@ -267,7 +267,10 @@
                 <td>
                   <div class="ui header">{{ payment.id }}</div>
                 </td>
-                <td>{{ payment.method }}</td>
+                <td>
+                  <sui-icon :name="payment.icon" />
+                  {{ payment.method }}
+                </td>
                 <td>$ {{ payment.paid }}</td>
                 <td>$ {{ payment.tendered }}</td>
                 <td>
@@ -282,33 +285,67 @@
             </tbody>
           </table>
 
-          <h4 class="ui horizontal divider center aligned header" v-if="sale.memos && sale.memos.length > 0">
-            <i class="comment outline icon"></i> Memo
+          <h4 class="ui horizontal divider center aligned header">
+            <i class="comment outline icon"></i> Memos
           </h4>
+
+          <div class="ui icon message">
+            <i class="info circle icon"></i>
+            <div class="content">
+              <div class="header">No memos so far</div>
+              <p>This sale doesn't have any memos.</p>
+            </div>
+          </div>
             
           <div class="ui comments">
             
-              <div class="comment" v-for="memo in sale.memos" :key="memo.id">
-                <div class="avatar"><i class="user circle big icon"></i></div>
-                <div class="content" v-if="memo.author">
-                  <div class="author">
-                    {{ memo.author.name }}
-                    <div class="ui tiny black label">{{ memo.author.role }}</div>
-                    <div class="metadata">
-                      <span class="date">
-                        {{ format(new Date(memo.created_at), $dateFormat.long) }}
-                        ({{ distanceInWords(new Date(), new Date(memo.created_at), { addSuffix: true }) }})
-                      </span>
+              <transition-group appear mode="out-in" name="list">
+                <div class="comment" v-for="memo in sale.memos" :key="memo.id">
+                  <div class="avatar"><i class="user circle big icon"></i></div>
+                  <div class="content" v-if="memo.author">
+                    <div class="author">
+                      {{ memo.author.name }}
+                      <div class="ui tiny black label">{{ memo.author.role }}</div>
+                      <div class="metadata">
+                        <span class="date">
+                          {{ format(new Date(memo.created_at), $dateFormat.long) }}
+                          ({{ distanceInWords(new Date(), new Date(memo.created_at), { addSuffix: true }) }})
+                        </span>
+                      </div>
+                    </div>
+                    <div class="text">
+                      {{ memo.message }}
                     </div>
                   </div>
-                  <div class="text">
-                    {{ memo.message }}
-                  </div>
                 </div>
-              </div>
+              </transition-group>
             
           </div>
 
+          <div class="ui form">
+              <div class="field">
+                <label>Write a memo:</label>
+                <textarea v-model="memo" 
+                          cols="8" 
+                          rows="2" 
+                          placeholder="Write a memo" 
+                          ></textarea>
+              </div>
+              <transition mode="out-in" name="fade">
+                <sui-label basic color="red" pointing 
+                            v-if="errors.hasOwnProperty('memo')">
+                  {{ errors.memo[0] }}
+                </sui-label>
+              </transition>
+            </div>
+            <br>
+            <div class="field">
+              <sui-button @click="submitMemo" icon="comment" labelPosition="left" 
+                          color="green" floated="right" :disabled="memo == null || memo.length < 5">
+                Save
+              </sui-button>
+            </div>
+            
         </div>
 
       </transition>
@@ -319,14 +356,16 @@
 </template>
 
 <script>
+  import { mapGetters } from "vuex"
   import axios          from "axios"
   
-  const SERVER = "http://10.51.135.136:8000"
+  const SERVER = "http://10.51.158.161:8000"
   
   export default {
     data: () => ({
       sale       : {},
       refundMemo : null,
+      memo       : null,
     }),
     components: { 
       SaleTotals: () => import('../components/SaleTotals'),
@@ -339,6 +378,7 @@
       this.isLoading = await false
     },
     computed: {
+      ...mapGetters(["errors"]),
       // Loading spinner
       isLoading: {
         set(value) { this.$store.commit("SET_IS_LOADING", value) },
@@ -354,6 +394,21 @@
           alert(`Error in fetchSale: ${error.message}`)
         }
       },
+      async submitMemo() {
+        const data = {
+          sale_id    : this.sale.id,
+          memo       : this.memo,
+          creator_id : 3,
+        }
+        try {
+          const response = await axios.post(`${SERVER}/api/memos`, data)
+          this.memo = null
+          await this.fetchSale()
+          alert(`Memo successfully added to Sale #${this.sale.id}`)
+        } catch (error) {
+          alert(`Error saving memo: ${error.message}`)
+        }
+      }
     }
   }
 </script>

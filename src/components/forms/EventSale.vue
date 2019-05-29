@@ -97,20 +97,17 @@
               </div>
             </td>
             <td>
-              <div class="ui black basic icon button" @click="ticket.amount >= 1 ? ticket.amount++ : null">
-                <i class="plus icon"></i>
-              </div>
-              <div class="ui black basic icon button" @click="ticket.amount = 1">
-                <i class="refresh icon"></i>
-              </div>
-              <div class="ui black basic icon button" @click="ticket.amount >= 1 ? ticket.amount-- : null">
-                <i class="minus icon"></i>
-              </div>
+              <sui-button icon="plus" color="black" basic :disabled="ticket.amount >= event.seats"
+                          @click.prevent="ticket.amount++" />
+              <sui-button icon="refresh" color="black" basic :disabled="ticket.amount == 1"
+                          @click.prevent="ticket.amount = 1" />
+              <sui-button icon="minus" color="black" basic :disabled="ticket.amount == 1"
+                          @click.prevent="ticket.amount--" />
               &nbsp;
               <div class="ui right labeled input">
                 <input type="text" 
                         style="width:auto"
-                        size="1"
+                        size="2"
                         min="1"
                         :max="event.seats"
                         v-model.number="ticket.amount"
@@ -214,7 +211,7 @@
         try {
           const response = await axios.get(`${SERVER}/api/allowedTickets?event_type=${this.$route.query.type}`)
           this.ticketOptions = response.data.data.map(ticket => {
-            Object.assign(ticket, { amount: 1 })
+            Object.assign(ticket, { amount: 1, event: { id: 1 } })
             return {
               key   : ticket.id,
               text  : ticket.name,
@@ -243,12 +240,17 @@
               ? 'No events found' 
               : `${ this.eventOptions.length } ${ this.eventOptions.length == 1 ? 'event' : 'events'} found` 
       },
+      // Replace this with mapGetters in the future, use index of event
       event: {
         set(value) { this.$store.commit('SET_EVENT', { index: this.$vnode.key, event: value }) },
         get()      { return this.$store.getters.sale.events[this.$vnode.key] }
       },
       tickets: {
-        set(value) { this.$store.commit('SET_TICKETS', { index: this.$vnode.key, tickets: value }) },
+        set(value) { 
+          //value.event.id = this.event.id
+          value.forEach(ticket => Object.assign(ticket.event, {id: this.event.id} ))
+          this.$store.commit('SET_TICKETS', { index: this.$vnode.key, tickets: value }) 
+        },
         get()      { return this.$store.getters.sale.tickets[this.$vnode.key] },
       },
     },

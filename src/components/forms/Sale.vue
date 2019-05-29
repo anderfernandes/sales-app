@@ -19,7 +19,8 @@
                           @click="$router.push({ name: 'index' })">
                 Back
               </sui-button>
-              <sui-button @click="submit" label-position="left" color="green" icon="save">
+              <sui-button @click="submit" label-position="left" color="green" icon="save"
+                          :disabled="!enableSubmit">
                 Save
               </sui-button>
             </div>
@@ -151,18 +152,12 @@
                               </div>
                             </td>
                             <td>
-                              <div class="ui black basic icon button" 
-                                @click="product.amount >= 0 ? product.amount++ : null">
-                                <i class="plus icon"></i>
-                              </div>
-                              <div class="ui black basic icon button" 
-                                @click="product.amount = 0">
-                                <i class="refresh icon"></i>
-                              </div>
-                              <div class="ui black basic icon button" 
-                                @click="product.amount >= 0 ? product.amount-- : null">
-                                <i class="minus icon"></i>
-                              </div>
+                              <sui-button icon="plus" color="black" basic
+                                          @click.prevent="product.amount++" />
+                              <sui-button icon="refresh" color="black" basic :disabled="product.amount == 1"
+                                          @click.prevent="product.amount = 1" />
+                              <sui-button icon="minus" color="black" basic :disabled="product.amount == 1"
+                                          @click.prevent="product.amount--" />
                               &nbsp;
                               <div class="ui right labeled input">
                                 <input type="text" 
@@ -403,6 +398,9 @@
 <script>
 
   import { mapActions, mapGetters, mapMutations } from 'vuex'
+  import axios from "axios"
+
+  const SERVER = "http://10.51.158.161:8000"
 
   export default {
     data: () => ({
@@ -432,14 +430,39 @@
       this.isLoading = await false
     },
     methods: {
+      
       ...mapActions(['fetchCustomers', 'fetchOrganizations', 'fetchGrades', 'fetchProducts', 
         'fetchPaymentMethods', 'fetchSettings']),
+      
       ...mapMutations({ addEvent: 'SET_NUMBER_OF_EVENTS' }),
-      submit(event) {
+      
+      async submit(event) {
         event.preventDefault()
+        // Getting currency values with two decimal points
+        this.sale.subtotal   = this.subtotal
+        this.sale.tax        = this.tax
+        this.sale.total      = this.total
+        this.sale.change_due = this.change_due
+
+        try {
+          let response = {}
+          
+          if (this.$route.name == "create")
+            response = await axios.post(`${SERVER}/api/sales`, this.sale)
+
+          const sale = response.data.data
+          this.$router.push({ name: "show", params: { id: sale.id } })
+          alert(`Sale #${sale.id} created sucessfully!`)
+
+        } catch (error) {
+          alert(`Error trying to save sale: ${error.message}`)
+        }
       }
     },
     computed : {
+      enableSubmit() {
+        return (this.sale.sell_to != null && this.sale.status && (this.sale.tickets.length > 0 || this.sale.products.length > 0))
+      },
       ...mapGetters(['sale', 'customers', 'organizations', 'statuses', 'sell_to', 'taxable', 
         'grades', 'products', 'payment_methods', 'errors', 'settings', 'currencySettings',
         'numberOfEvents']),

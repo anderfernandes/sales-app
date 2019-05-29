@@ -5,6 +5,7 @@ const SERVER = "http://10.51.158.161:8000"
 let getDefaultState = () => ({
     // Sale data
     sale: {
+      creator_id     : 3,
       status         : "open",
       sell_to        : null,
       customer       : null,
@@ -29,8 +30,8 @@ let getDefaultState = () => ({
 
     // Options for dropdowns throughout form
     sell_to : [
+      { key: "customer",     text: "Customer",     value: 0 },
 			{ key: "organization", text: "Organization", value: 1 },
-			{ key: "customer",     text: "Customer",     value: 0 },
     ],
     
     taxable : [
@@ -78,7 +79,7 @@ export default {
       // Find product
       let i = state.sale.products.findIndex(product => product.id == payload.id)
       // Reset count
-      Object.assign(state.sale.products[i], { amount: 0 })
+      Object.assign(state.sale.products[i], { amount: 1 })
       // Remove from array
       state.sale.products.splice(i, 1)
     },
@@ -93,6 +94,7 @@ export default {
       let productTotals = 0
       let ticketTotals  = 0
       let tax = (state.settings.tax * state.sale.taxable) * state.sale.subtotal
+      tax = parseFloat(tax.toFixed(2))
 
       // Calculating product totals
       if (state.sale.products.length > 0)
@@ -123,6 +125,10 @@ export default {
     // SET_EVENT
     SET_EVENT(state, payload) {
       state.sale.events.splice(payload.index, 1, payload.event)
+
+      // Update event in tickets if event changes and there are tickets for the event
+      if (state.sale.tickets[payload.index] && state.sale.tickets[payload.index].length > 0)
+        state.sale.tickets[payload.index].forEach(ticket => Object.assign(ticket.event, { id: state.sale.events[payload.index].id }))
     },
 
     // SET_TICKETS
@@ -172,7 +178,7 @@ export default {
           text  : product.name,
           value : {
             id          : product.id,
-            amount      : 0,
+            amount      : 1,
             price       : product.price,
             name        : product.name,
             description : product.description,
