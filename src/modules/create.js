@@ -5,27 +5,29 @@ const SERVER = "http://10.51.158.161:8000"
 let getDefaultState = () => ({
     // Sale data
     sale: {
-      creator_id     : 3,
-      status         : "open",
-      sell_to        : null,
-      customer       : null,
-      grades         : [],
-      products       : [],
-      events         : [],
-      tickets        : [],
-      taxable        : 0,
-      payment_method : null,
-      tendered       : 0,
-      change_due     : 0,
-      reference      : null,
-      payments       : [],
-      memo           : null, // New memo
-      memos          : [],
-      subtotal       : 0,
-      tax            : 0,
-      paid           : 0,
-      total          : 0,
-      balance        : 0,
+      creator_id       : 3,
+      status           : "open",
+      sell_to          : null,
+      customer         : null,
+      dates            : [],
+      grades           : [],
+      products         : [],
+      events           : [],
+      tickets          : [],
+      selected_tickets : [],
+      taxable          : 0,
+      payment_method   : null,
+      tendered         : 0,
+      change_due       : 0,
+      reference        : null,
+      payments         : [],
+      memo             : null, // New memo
+      memos            : [],
+      subtotal         : 0,
+      tax              : 0,
+      paid             : 0,
+      total            : 0,
+      balance          : 0,
     },
 
     // Options for dropdowns throughout form
@@ -51,6 +53,10 @@ export default {
   state : getDefaultState(),
 
   mutations : {
+
+    SET_SALE(state, payload) {
+      Object.assign(state.sale, payload)
+    },
 
     // RESET_CREATE
     RESET_CREATE(state) {
@@ -102,7 +108,7 @@ export default {
           (total + (product.amount * product.price)), 0)
 
       // Calculating ticket totals
-      state.sale.tickets.forEach(eventTickets => {
+      state.sale.selected_tickets.forEach(eventTickets => {
         ticketTotals += eventTickets.reduce((total, ticket) => 
           (total + (ticket.amount * ticket.price)), 0
         )
@@ -128,7 +134,7 @@ export default {
 
       // Update event in tickets if event changes and there are tickets for the event
       if (state.sale.tickets[payload.index] && state.sale.tickets[payload.index].length > 0)
-        state.sale.tickets[payload.index].forEach(ticket => Object.assign(ticket.event, { id: state.sale.events[payload.index].id }))
+        state.sale.tickets[payload.index].forEach(ticket => Object.assign(ticket.event, { id: state.sale.events[payload.index] }))
     },
 
     // SET_TICKETS
@@ -137,18 +143,29 @@ export default {
       // payload.tickets is an array of selected tickets for event # payload.index in sale
     },
 
+    SET_SELECTED_TICKETS(state, payload) {
+      state.sale.selected_tickets.splice(payload.index, 1, payload.selected_tickets)
+    },
+
     REMOVE_TICKET(state, payload) {
+      
       // Find ticket
-      let i = state.sale.tickets[payload.index].findIndex(ticket => ticket.id == payload.id)
+      let i = state.sale.tickets[payload.index].findIndex(ticket => ticket == payload.id)
+      let j = state.sale.selected_tickets[payload.index].findIndex(ticket => ticket.id == payload.id)
       // Reset count
-      Object.assign(state.sale.tickets[payload.index][i], { amount: 1 })
+      Object.assign(state.sale.selected_tickets[payload.index][j], { amount: 1 })
       // Remove from array
       state.sale.tickets[payload.index].splice(i, 1)
+      state.sale.selected_tickets[payload.index].splice(j, 1)
     },
 
     SET_NUMBER_OF_EVENTS(state, payload) {
       state.numberOfEvents++
     },
+
+    SET_DATES(state, payload) {
+      state.sale.dates.splice(payload.index, 1, payload.date)
+    }
 
   },
 
@@ -163,7 +180,7 @@ export default {
           text : grade.name,
           value: grade.id,
         }))
-        commit("SET_GRADES", await grades)
+        commit('SET_GRADES', await grades)
       } catch (error) {
         alert(`Error in actions.fetchGrades: ${ error.message }`)
       }

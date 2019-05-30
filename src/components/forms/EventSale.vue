@@ -22,41 +22,43 @@
     </div>
 
     <transition appear mode="out-in" name="fade">
-      <div class="ui inverted segment" v-if="!isLoading && event != null">
+      <div class="ui inverted segment" v-if="!isLoading && selected_event != null && selected_event.show != null">
         <div class="ui items">
           <div class="item">
             <div class="image">
-              <img :src="event.show.cover" :alt="event.show.name">
+              <img :src="selected_event.show.cover" :alt="selected_event.show.name">
             </div>
             <div class="content">
               <div class="header" style="color:white">
-                {{ event.show.name }}
+                {{ selected_event.show.name }}
               </div>
               <div class="meta">
                 <p style="color:white">
                   <i class="calendar alternate icon"></i>
-                  {{ format(new Date(event.start), $dateFormat.long) }}
-                  {{ distanceInWordsToNow(new Date(event.start), { addSuffix: true }) }}
+                  {{ format(new Date(selected_event.start), $dateFormat.long) }}
+                  ({{ distanceInWordsToNow(new Date(selected_event.start), { addSuffix: true }) }})
                 </p>
+                <div class="ui divider"></div>
               </div>
               <div class="meta">
                 <div class="ui inverted header">
                   <div class="ui basic label" style="margin-left:0">
-                    {{ event.show.type }}
+                    {{ selected_event.show.type }}
                   </div>
                   <div class="ui basic label">
-                    {{ event.type }}
+                    {{ selected_event.type.name }}
                   </div>
                   <div class="ui basic label">
-                    {{ event.show.duration }} minutes
+                    {{ selected_event.show.duration }} minutes
                   </div>
                   <div class="ui basic label">
-                    {{ event.seats }} {{ event.seats == 1 ? 'seat' : 'seats' }} available
+                    {{ selected_event.seats }} {{ selected_event.seats == 1 ? 'seat' : 'seats' }} available
                   </div>
                 </div>
               </div>
               <div class="description">
-                <p style="color:white">{{ event.show.description }}</p>
+                <div class="ui divider"></div>
+                <p style="color:white">{{ selected_event.show.description }}</p>
               </div>
             </div>
           </div>
@@ -86,7 +88,7 @@
           </tr>
         </thead>
         <tbody name="fade" is="transition-group" appear mode="out-in">
-          <tr v-for="ticket in tickets" :key="ticket.id">
+          <tr v-for="ticket in selected_tickets" :key="ticket.id">
             <td>
               <div class="ui small header">
                 <i class="ticket icon"></i>
@@ -97,7 +99,7 @@
               </div>
             </td>
             <td>
-              <sui-button icon="plus" color="black" basic :disabled="ticket.amount >= event.seats"
+              <sui-button icon="plus" color="black" basic :disabled="ticket.amount >= selected_event.seats"
                           @click.prevent="ticket.amount++" />
               <sui-button icon="refresh" color="black" basic :disabled="ticket.amount == 1"
                           @click.prevent="ticket.amount = 1" />
@@ -105,8 +107,8 @@
                           @click.prevent="ticket.amount--" />
               &nbsp;
               <div class="ui right labeled input">
-                <input type="text" 
-                        style="width:auto"
+                <input type="number" readonly
+                        style="width:4rem"
                         size="2"
                         min="1"
                         :max="event.seats"
@@ -124,10 +126,8 @@
             </td>
             <td>
               1
-              
-                <input type="range" v-model.number="ticket.amount" min="1" :max="event.seats" style="width:75%">
-              
-              {{ event.seats }}
+              <input type="range" v-model.number="ticket.amount" min="1" :max="event.seats" style="width:75%">
+              {{ selected_event.seats }}
             </td>
           </tr>
         </tbody>
@@ -152,10 +152,14 @@
         dateFormat: "l, F j, Y",
         defaultDate: "today",
       },
-      date          : null,
-      eventOptions  : [],
-      ticketOptions : [],
-      isLoading     : true,
+      eventOptions     : [],
+      events_data      : [],
+      
+      ticketOptions    : [],
+      tickets_data     : [],
+      
+      isLoading        : true,
+      event_type_id    : null,
     }),
     components: { flatpickr },
     watch : {
@@ -164,10 +168,14 @@
         await this.fetchEventOptions()
         this.isLoading = false
       },
-      tickets: {
-        handler : function() { this.$store.commit('CALCULATE_TOTALS') },
-        deep    : true,
-      }
+      selected_tickets: {
+        handler : function() { 
+          this.$store.commit('CALCULATE_TOTALS')
+          this.selected_tickets 
+        },
+        deep : true,
+      },
+      tickets() { this.selected_tickets = this.tickets }
     },
     methods: {
       format,
@@ -176,14 +184,15 @@
       async fetchEventOptions() {
         let date = format(new Date(this.date), "YYYY-MM-DD")
         try {
-          const response = await axios.get(`${SERVER}/api/events?start=${date}&type=${this.$route.query.type}`)
+          const response = await axios.get(`${SERVER}/api/events?start=${date}&type=${ this.event_type_id }`)
           // Array with all event objects to show in box below event selection dropdown
           this.eventOptions = response.data.map(event => {
+            this.events_data.push(event)
             let time = format(new Date(event.start), "h:mm aa")
             return {
-              key  : event.id,
-              text : `#${event.id} - ${event.show.id == 1 ? event.memo : event.show.name} at ${time} (${event.type}, ${event.seats} ${event.seats == 1 ? "seat" : "seats"} left)`,
-              value: event,
+              key   : event.id,
+              text  : `#${event.id} - ${event.show.id == 1 ? event.memo : event.show.name} at ${time} (${event.type.name}, ${event.seats} ${event.seats == 1 ? "seat" : "seats"} left)`,
+              value : event.id,
             }
           })
           // await this.$store.dispatch("setEventOptions", { index: this.$vnode.key - 1, eventOptions: eventOptions})
@@ -209,14 +218,15 @@
       // Fetch Tickets Types
       async fetchTicketsTypes() {
         try {
-          const response = await axios.get(`${SERVER}/api/allowedTickets?event_type=${this.$route.query.type}`)
+          const response = await axios.get(`${SERVER}/api/allowedTickets?event_type=${ this.event_type_id }`)
           this.ticketOptions = response.data.data.map(ticket => {
             Object.assign(ticket, { amount: 1, event: { id: 1 } })
+            this.tickets_data.push(ticket)
             return {
               key   : ticket.id,
               text  : ticket.name,
               icon  : 'ticket',
-              value : ticket,
+              value : ticket.id,
             }
           })
         } catch (error) {
@@ -230,28 +240,61 @@
     },
     async created() {
       this.isLoading = true
+      
+      if (this.$route.name == "edit") {
+        this.event_type_id = this.event.type.id
+        this.date = format(new Date(this.event.start), "dddd, MMMM D, YYYY")
+    
+      } else if (this.$route.name == "create") {
+        this.event_type_id = this.$route.query.type
+      }
       await this.fetchEventOptions()
       await this.fetchTicketsTypes()
       this.isLoading = false
     },
     computed: {
+
+      selected_event() { return this.events_data.find(event => event.id == this.event) },
+
+      selected_tickets: {
+        set(value) { 
+          const selected_tickets = this.tickets_data.filter(ticket => value.includes(ticket.id))
+          this.$store.commit('SET_SELECTED_TICKETS', { index: this.$vnode.key, selected_tickets })
+        },
+        get() { return this.$store.getters.sale.selected_tickets[this.$vnode.key] || [] }
+      },
+      
       placeholder() {
         return (this.eventOptions) && (this.eventOptions.length == 0) 
               ? 'No events found' 
               : `${ this.eventOptions.length } ${ this.eventOptions.length == 1 ? 'event' : 'events'} found` 
       },
+
+      date: {
+        set(value) { this.$store.commit('SET_DATES', { index: this.$vnode.key, date: value }) },
+        get()      { 
+          const dates = this.$store.getters.sale.dates
+          
+          return dates[this.$vnode.key] || new Date()     
+        }
+      },
+      
       // Replace this with mapGetters in the future, use index of event
       event: {
         set(value) { this.$store.commit('SET_EVENT', { index: this.$vnode.key, event: value }) },
-        get()      { return this.$store.getters.sale.events[this.$vnode.key] }
+        get()      { return this.$store.getters.sale.events[this.$vnode.key] || null }
       },
+      
       tickets: {
         set(value) { 
           //value.event.id = this.event.id
-          value.forEach(ticket => Object.assign(ticket.event, {id: this.event.id} ))
-          this.$store.commit('SET_TICKETS', { index: this.$vnode.key, tickets: value }) 
+          //value.forEach(ticket => Object.assign(ticket.event, {id: this.event } ))
+          this.$store.commit('SET_TICKETS', { index: this.$vnode.key, tickets: value, event: this.event }) 
         },
-        get()      { return this.$store.getters.sale.tickets[this.$vnode.key] },
+        get()      { 
+          const tickets = this.$store.getters.sale.tickets[this.$vnode.key] 
+          return tickets || []
+          },
       },
     },
   }

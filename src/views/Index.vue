@@ -83,6 +83,7 @@
       <observer @intersect="fetchSales"></observer>
 
       <sui-button icon="pencil" circular color="black" @click="$store.commit('TOGGLE_MODAL', true)"
+                  labelPosition="left"
                   style="position:fixed; z-index: 999; right: 11rem; bottom: 3rem">
         Create Sale
       </sui-button>

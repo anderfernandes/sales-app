@@ -100,7 +100,7 @@
 
                 <!-- Add Another Event -->
                 <transition appear mode="out-in" name="fade">
-                  <sui-button v-if="(sale.customer != null)"
+                  <sui-button v-if="sale.selected_tickets.length > 0"
                               label-position="left" 
                               color="black" 
                               icon="calendar plus alternate"
@@ -411,30 +411,81 @@
         handler: function() { this.$store.commit('CALCULATE_TOTALS') },
         deep   : true,
       },
-      "sale.taxable": function() { this.$store.commit('CALCULATE_TOTALS') },
-      "sale.tendered": function() { this.$store.commit('CALCULATE_TOTALS') },
+      "sale.taxable"        : function() { 
+        this.$store.commit('CALCULATE_TOTALS') 
+        this.setTendered()
+      },
+      "sale.tendered"       : function() { this.$store.commit('CALCULATE_TOTALS') },
+      "sale.payment_method" : function() { this.setTendered() }
     },
     components: {
       Modal     : () => import('../Modal'),
       EventForm : () => import('./EventSale'),
     },
     async created() {
-      document.title = "Astral -  Create New Sale"
+      
       this.isLoading = await true
+
       await this.fetchSettings()
       await this.fetchCustomers()
       await this.fetchOrganizations()
       await this.fetchGrades()
       await this.fetchProducts()
       await this.fetchPaymentMethods()
+      
+      if (this.$route.name == "create") {
+        document.title = "Astral -  Create New Sale"
+      } else if (this.$route.name == "edit") {
+        document.title = `Astral -  Edit Sale #${this.$route.params.id}`
+        await this.fetchSale()
+      }
+      
       this.isLoading = await false
     },
     methods: {
+      // Set tendered to sale total automatically if sale isn't cash, set it to 0 if it is cash
+      setTendered() {
+        this.sale.tendered = this.sale.payment_method == 1 ? 0 : this.total
+      },
+
+      async fetchSale() {
+        try {
+          const response = await axios.get(`${SERVER}/api/sale/${this.$route.params.id}`)
+          
+          let sale = response.data
+
+          // Set sell to
+          sale.sell_to = sale.sell_to_organization ? 1 : 0
+          // Set grades
+          sale.grades = sale.grades.map(grade => grade.id) // only id of grades
+          // Set customer
+          sale.customer = sale.customer.id
+          // Subtotal
+          sale.subtotal = parseFloat(sale.subtotal)
+          // Tax
+          sale.tax = parseFloat(sale.tax)
+          // Total
+          sale.total = parseFloat(sale.total)
+          // Paid
+          sale.paid = parseFloat(sale.paid)
+          // Balance
+          sale.balance = parseFloat(sale.balance)
+          // Setting taxable
+          sale.taxable = parseInt(sale.taxable)
+
+          sale.payment_method = 1
+
+          Object.assign(this.sale, sale)
+
+        } catch (error) {
+          alert(`Error in fetchSale: ${error.message}`)
+        }
+      },
       
       ...mapActions(['fetchCustomers', 'fetchOrganizations', 'fetchGrades', 'fetchProducts', 
         'fetchPaymentMethods', 'fetchSettings']),
       
-      ...mapMutations({ addEvent: 'SET_NUMBER_OF_EVENTS' }),
+      ...mapMutations({ addEvent : 'SET_NUMBER_OF_EVENTS' }),
       
       async submit(event) {
         event.preventDefault()
@@ -460,10 +511,17 @@
       }
     },
     computed : {
+      
+      sale: {
+        set(value) { this.$store.commit("SET_SALE", value) },
+        get()      { return this.$store.getters.sale       },
+      },
+
       enableSubmit() {
         return (this.sale.sell_to != null && this.sale.status && (this.sale.tickets.length > 0 || this.sale.products.length > 0))
       },
-      ...mapGetters(['sale', 'customers', 'organizations', 'statuses', 'sell_to', 'taxable', 
+      
+      ...mapGetters(['customers', 'organizations', 'statuses', 'sell_to', 'taxable', 
         'grades', 'products', 'payment_methods', 'errors', 'settings', 'currencySettings',
         'numberOfEvents']),
       // Loading spinner
@@ -471,15 +529,19 @@
         set(value) { this.$store.commit("SET_IS_LOADING", value) },
         get()      { return this.$store.getters.isLoading }
       },
+      
       subtotal() { 
         return this.sale.subtotal.toLocaleString("en-US", this.currencySettings) 
       },
+      
       tax()      { 
         return this.sale.tax.toLocaleString("en-US", this.currencySettings)      
       },
+      
       total() { 
         return this.sale.total.toLocaleString("en-US", this.currencySettings)    
       },
+      
       change_due() {
         return this.sale.change_due.toLocaleString("en-US", this.currencySettings)    
       }

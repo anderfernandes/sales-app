@@ -65,11 +65,11 @@
         {{ sale.creator.firstname }} |
         <i class="pencil icon"></i>      
         {{ format(new Date(sale.created_at), $dateFormat.long) }}
-        ({{ distanceInWords(new Date(), new Date(sale.created_at)) }})
+        ({{ distanceInWords(new Date(), new Date(sale.created_at), { addSuffix: true }) }})
         <span v-if="sale.updated_at != sale.created_at">
           | <i class="edit icon"></i> 
           {{ format(new Date(sale.updated_at), $dateFormat.long) }}
-          ({{ distanceInWords(new Date(), new Date(sale.updated_at)) }})
+          ({{ distanceInWords(new Date(), new Date(sale.updated_at), { addSuffix: true }) }})
         </span>
       </div>
 
@@ -92,7 +92,7 @@
                 <div class="header">{{ event.show.name }}</div>
                 <div class="meta">
                     {{ format(new Date(event.start), $dateFormat.long) }}
-                    ({{ distanceInWords(new Date(), new Date(event.start)) }})
+                    ({{ distanceInWords(new Date(), new Date(event.start), { addSuffix: true }) }})
                 </div>
                 <div class="meta">
                     <div class="ui label" v-for="product in sale.products" :key="product.id"
