@@ -289,13 +289,15 @@
             <i class="comment outline icon"></i> Memos
           </h4>
 
-          <div class="ui icon message">
-            <i class="info circle icon"></i>
-            <div class="content">
-              <div class="header">No memos so far</div>
-              <p>This sale doesn't have any memos.</p>
+          <transition mode="out-in" name="fade">
+            <div class="ui icon message" v-if="sale.memos && sale.memos.length == 0">
+              <i class="info circle icon"></i>
+              <div class="content">
+                <div class="header">No memos so far</div>
+                <p>This sale doesn't have any memos.</p>
+              </div>
             </div>
-          </div>
+          </transition>
             
           <div class="ui comments">
             
@@ -333,14 +335,14 @@
               </div>
               <transition mode="out-in" name="fade">
                 <sui-label basic color="red" pointing 
-                            v-if="errors.hasOwnProperty('memo')">
+                            v-if="errors && errors.hasOwnProperty('memo')">
                   {{ errors.memo[0] }}
                 </sui-label>
               </transition>
             </div>
             <br>
             <div class="field">
-              <sui-button @click="submitMemo" icon="comment" labelPosition="left" 
+              <sui-button @click="submitMemo" icon="save" labelPosition="left" 
                           color="green" floated="right" :disabled="memo == null || memo.length < 5">
                 Save
               </sui-button>
@@ -359,32 +361,40 @@
   import { mapGetters } from "vuex"
   import axios          from "axios"
   
-  const SERVER = "http://10.51.158.161:8000"
+  const SERVER = "http://10.51.134.194:8000"
   
   export default {
+    
     data: () => ({
       sale       : {},
       refundMemo : null,
       memo       : null,
     }),
+    
     components: { 
       SaleTotals: () => import('../components/SaleTotals'),
       Modal     : () => import('../components/Modal')
     },
+    
     async created() {
       document.title = `Astral - Sale #${this.sale.id}`
       this.isLoading = await true
       await this.fetchSale()
       this.isLoading = await false
     },
+    
     computed: {
-      ...mapGetters(["errors"]),
-      // Loading spinner
+    
+    ...mapGetters(["errors"]),
+    
+    // Loading spinner
       isLoading: {
         set(value) { this.$store.commit("SET_IS_LOADING", value) },
         get()      { return this.$store.getters.isLoading }
       },
+    
     },
+    
     methods : {
       async fetchSale() {
         try {
@@ -394,22 +404,31 @@
           alert(`Error in fetchSale: ${error.message}`)
         }
       },
+    
       async submitMemo() {
-        const data = {
-          sale_id    : this.sale.id,
-          memo       : this.memo,
-          creator_id : 3,
-        }
-        try {
-          const response = await axios.post(`${SERVER}/api/memos`, data)
-          this.memo = null
-          await this.fetchSale()
-          alert(`Memo successfully added to Sale #${this.sale.id}`)
-        } catch (error) {
-          alert(`Error saving memo: ${error.message}`)
+          const data = {
+            sale_id    : this.sale.id,
+            memo       : this.memo,
+            creator_id : 3,
+          }
+          try {
+            const response = await axios.post(`${SERVER}/api/memos`, data)
+            this.memo = null
+            await this.fetchSale()
+            
+            this.$store.commit("SET_ALERT", {
+              type    : "success",
+              title   : "Success!",
+              icon    : "thumbs up",
+              message : response.data.message,
+            })
+            this.$store.commit("TOGGLE_SHOW_ALERT", true)
+
+          } catch (error) {
+            alert(`Error saving memo: ${error.message}`)
+          }
         }
       }
-    }
   }
 </script>
 

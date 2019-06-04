@@ -54,10 +54,10 @@
                                 v-model="sale.sell_to"
                                 :options="sell_to"
                                 placeholder="Sell To"
-                                :error="errors.hasOwnProperty('sell_to')"></sui-dropdown>
+                                :error="errors && errors.hasOwnProperty('sell_to')"></sui-dropdown>
                   <transition mode="out-in" name="fade">
                     <sui-label basic color="red" pointing 
-                                v-if="errors.hasOwnProperty('sell_to')">
+                                v-if="errors && errors.hasOwnProperty('sell_to')">
                       {{ errors.sell_to[0] }}
                     </sui-label>
                   </transition>
@@ -71,7 +71,7 @@
                                 search selection></sui-dropdown>
                   <transition mode="out-in" name="fade">
                     <sui-label basic color="red" pointing 
-                                v-if="errors.hasOwnProperty('customer')">
+                                v-if="errors && errors.hasOwnProperty('customer')">
                       {{ errors.customer[0] }}
                     </sui-label>
                   </transition>
@@ -135,7 +135,7 @@
                         </tr>
                       </thead>
                         <tbody name="fade" is="transition-group" mode="out-in">
-                          <tr v-for="product in sale.products"
+                          <tr v-for="product in sale.selected_products"
                               :key="product.id">
                             <td>
                               <div class="ui small header">
@@ -226,12 +226,12 @@
                       <input placeholder="Change Due" v-model="change_due" readonly>
                     </div>
                   </sui-form-field>
-                  <sui-form-field :error="errors.hasOwnProperty('reference')">
+                  <sui-form-field :error="errors && errors.hasOwnProperty('reference')">
                     <label>Reference</label>
                     <input type="tel" placeholder="Reference" v-model.number="sale.reference">
                     <transition mode="in-out" name="fade">
                         <sui-label basic color="red" pointing 
-                        v-if="errors.hasOwnProperty('reference')">
+                        v-if="errors && errors.hasOwnProperty('reference')">
                           {{ errors.reference[0] }}
                         </sui-label>
                     </transition>
@@ -310,7 +310,7 @@
               </div>
               <transition mode="out-in" name="fade">
                   <sui-label basic color="red" pointing 
-                              v-if="errors.hasOwnProperty('memo')">
+                              v-if="errors && errors.hasOwnProperty('memo')">
                     {{ errors.memo[0] }}
                   </sui-label>
                 </transition>
@@ -398,30 +398,42 @@
 <script>
 
   import { mapActions, mapGetters, mapMutations } from 'vuex'
-  import axios from "axios"
+  import axios  from "axios"
+  import format from "date-fns/format"
 
-  const SERVER = "http://10.51.158.161:8000"
+  const SERVER = "http://10.51.134.194:8000"
 
   export default {
     data: () => ({
       active_tab: 0,
     }),
+    
     watch: {
       "sale.products": {
-        handler: function() { this.$store.commit('CALCULATE_TOTALS') },
+        handler : function(newValue) { this.$store.commit('SET_SELECTED_PRODUCTS', newValue) },
+        deep    : true,
+      },
+      "sale.selected_products" : {
+        handler: function() { 
+          //this.sale.selected_products
+          this.$store.commit('CALCULATE_TOTALS') 
+      },
         deep   : true,
       },
       "sale.taxable"        : function() { 
         this.$store.commit('CALCULATE_TOTALS') 
-        this.setTendered()
+        if (this.payment_method != 1)
+          this.setTendered()
       },
       "sale.tendered"       : function() { this.$store.commit('CALCULATE_TOTALS') },
       "sale.payment_method" : function() { this.setTendered() }
     },
+    
     components: {
       Modal     : () => import('../Modal'),
       EventForm : () => import('./EventSale'),
     },
+
     async created() {
       
       this.isLoading = await true
@@ -442,6 +454,7 @@
       
       this.isLoading = await false
     },
+
     methods: {
       // Set tendered to sale total automatically if sale isn't cash, set it to 0 if it is cash
       setTendered() {
@@ -452,7 +465,7 @@
         try {
           const response = await axios.get(`${SERVER}/api/sale/${this.$route.params.id}`)
           
-          let sale = response.data
+          let sale = await response.data
 
           // Set sell to
           sale.sell_to = sale.sell_to_organization ? 1 : 0
@@ -473,6 +486,33 @@
           // Setting taxable
           sale.taxable = parseInt(sale.taxable)
 
+          await this.$store.commit('SET_NUMBER_OF_EVENTS', sale.events.length || 0 )
+
+          // Need dates before we reassign events array to have only id of the events
+          sale.dates = await sale.events.map(event => format(new Date(event.start), "dddd, MMMM D, YYYY"))
+
+          this.$route.query.type = sale.events.length > 0 ? sale.events[0].type.id : 1
+
+          sale.tickets = await sale.events.map(event => event.tickets.map(ticket => ticket.id))
+
+          sale.selected_tickets = sale.events.map(event => event.tickets.map(ticket => ({
+            active      : ticket.active,
+            amount      : ticket.amount,
+            description : ticket.description,
+            event       : ticket.event,
+            id          : ticket.id,
+            in_cashier  : ticket.in_cashier,
+            name        : ticket.name,
+            price       : ticket.price,
+            public      : ticket.public,
+            type        : ticket.type
+          })))
+
+
+          sale.events = sale.events.map(event => event.id)
+
+          sale.products = sale.products.map(product => product.id)
+
           sale.payment_method = 1
 
           Object.assign(this.sale, sale)
@@ -488,28 +528,67 @@
       ...mapMutations({ addEvent : 'SET_NUMBER_OF_EVENTS' }),
       
       async submit(event) {
+
         event.preventDefault()
-        // Getting currency values with two decimal points
-        this.sale.subtotal   = this.subtotal
-        this.sale.tax        = this.tax
-        this.sale.total      = this.total
-        this.sale.change_due = this.change_due
+        
+        let data = {
+          balance        : this.balance,
+          change_due     : this.change_due,
+          creator_id     : this.sale.creator_id,
+          customer       : this.sale.customer,
+          dates          : this.sale.dates,
+          events         : this.sale.events,
+          grades         : this.sale.grades,
+          memo           : this.sale.memo,
+          memos          : this.sale.memos,
+          paid           : this.sale.paid,
+          payment_method : this.sale.payment_method,
+          payments       : this.sale.payments,
+          products       : this.sale.selected_products,
+          reference      : this.sale.reference,
+          sell_to        : this.sale.sell_to,
+          status         : this.sale.status,
+          subtotal       : this.subtotal,
+          tax            : this.tax,
+          taxable        : this.sale.taxable,
+          tendered       : this.sale.tendered,
+          tickets        : this.sale.selected_tickets,
+          total          : this.total,
+          
+        }
 
         try {
           let response = {}
           
-          if (this.$route.name == "create")
-            response = await axios.post(`${SERVER}/api/sales`, this.sale)
+          if (this.$route.name == "create") {
+            response = await axios.post(`${SERVER}/api/sales`, data)
+            let sale = response.data.data
+            this.$store.commit('SET_MESSAGE', `Sale #${sale.id} created sucessfully!`)
+          }
+            
+          else if (this.$route.name == "edit") {
+            response = await axios.post(`${SERVER}/api/sales/${this.$route.params.id}`, data)
+          }
 
           const sale = response.data.data
+
+          this.$store.commit("SET_ALERT", {
+              type    : "success",
+              title   : "Success!",
+              icon    : "thumbs up",
+              message : response.data.message,
+            })
+          
+          this.$store.commit("TOGGLE_SHOW_ALERT", true)
+
           this.$router.push({ name: "show", params: { id: sale.id } })
-          alert(`Sale #${sale.id} created sucessfully!`)
 
         } catch (error) {
           alert(`Error trying to save sale: ${error.message}`)
         }
       }
     },
+
     computed : {
       
       sale: {

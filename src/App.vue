@@ -3,8 +3,54 @@
     <transition mode="out-in" name="fade">
       <router-view />
     </transition>
+    
+    <sui-modal v-model="open" basic>
+      <div class="ui icon header" style="padding-bottom: 0" v-if="alert != null">
+        <sui-icon :name="alert.icon"></sui-icon> {{ alert.title }}
+      </div>
+      <div class="content" style="padding-top: 0" v-if="alert != null">
+        <p>{{ alert.message }}</p>
+      </div>
+      <div class="actions" v-if="alert != null">
+        <sui-button :color="buttonColor" inverted icon="check" @click="open = false">
+          Gotcha!
+        </sui-button>
+      </div>
+    </sui-modal>
+
   </div>
 </template>
+
+<script>
+  export default {
+    computed: {
+      
+      alert: {
+        set(value) { this.$store.commit('SET_ALERT', value) },
+        get()      { return this.$store.getters.alert },
+      },
+      
+      open : {
+        set(value) { 
+          this.$store.commit('TOGGLE_SHOW_ALERT', value)
+          if (value == false)
+            this.alert = null
+        },
+        get()      { return this.$store.getters.show_alert }
+      },
+
+      buttonColor() {
+        switch (this.alert.type) {
+          case "info"    : return "blue"
+          case "warning" : return "yellow"
+          case "error"   : return "red"
+          case "success" : return "green"
+        }
+      }
+    },
+  }
+</script>
+
 
 <style>
   .observer {

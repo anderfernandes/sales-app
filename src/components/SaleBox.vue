@@ -95,10 +95,10 @@
                     ({{ distanceInWords(new Date(), new Date(event.start), { addSuffix: true }) }})
                 </div>
                 <div class="meta">
-                    <div class="ui label" v-for="product in sale.products" :key="product.id"
+                    <div class="ui label" v-for="product in products" :key="product.id"
                           style="border-color: white; background-color: transparent; color: white; border-width: 1px">
                     <i class="box icon"></i>{{ product.name }}<div class="detail">
-                      {{ sale.products.filter(p => p == product).length }}
+                      {{ product.quantity }}
                     </div>
                   </div>
                 </div>
@@ -113,20 +113,47 @@
 
 <script>
   import { mapGetters } from "vuex"
+  import axios from "axios"
+
+  const SERVER = "http://10.51.134.194:8000"
 
   export default {
-    props : ["sale"],
-    computed: {
+    props    : ["sale"],
+    
+    data : () => ({
+      products : [],
+    }),
+
+    async created() {
+      await this.fetchProducts()
+    },
+
+    methods: {
+      async fetchProducts() {
+        try {
+          const response = await axios.get(`${SERVER}/api/sale/${this.sale.id}`)
+          this.products  = response.data.products
+        } catch (error) {
+          alert(`Unable to fetch products: ${ error.message }`)
+        }
+      }
+    },
+
+    computed : {
+      
       ...mapGetters(['currencySettings']),
+      
       paid() {
         let paid = this.sale.payments.reduce((total, current) => total + parseFloat(current.tendered), 0)
         let change_due = this.sale.payments.reduce((total, current) => total + parseFloat(current.change_due), 0)
         return (paid - change_due).toLocaleString("en-US", this.currencySettings)
       },
+      
       balance() {
         let balance = parseFloat(this.sale.total) - parseFloat(this.paid)
         return balance.toLocaleString("en-US", this.currencySettings)
       },
+
     },
   }
 </script>

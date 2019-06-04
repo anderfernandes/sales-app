@@ -22,7 +22,7 @@
     </div>
 
     <transition appear mode="out-in" name="fade">
-      <div class="ui inverted segment" v-if="!isLoading && selected_event != null && selected_event.show != null">
+      <div class="ui inverted segment" v-if="!isLoading && selected_event != null">
         <div class="ui items">
           <div class="item">
             <div class="image">
@@ -98,7 +98,7 @@
                 </div>
               </div>
             </td>
-            <td>
+            <td v-if="selected_event">
               <sui-button icon="plus" color="black" basic :disabled="ticket.amount >= selected_event.seats"
                           @click.prevent="ticket.amount++" />
               <sui-button icon="refresh" color="black" basic :disabled="ticket.amount == 1"
@@ -108,13 +108,13 @@
               &nbsp;
               <div class="ui right labeled input">
                 <input type="number" readonly
-                        style="width:4rem"
-                        size="2"
-                        min="1"
-                        :max="event.seats"
-                        v-model.number="ticket.amount"
-                        @input="$store.commit('CALCULATE_TOTALS')" 
-                        placeholder="Amount">
+                       style="width:4rem"
+                       size="2"
+                       min="1"
+                       :max="selected_event.seats"
+                       v-model.number="ticket.amount"
+                       @input="$store.commit('CALCULATE_TOTALS')" 
+                       placeholder="Amount">
                 <div class="ui basic label">
                   $ {{ ticket.price.toFixed(2) }} each
                 </div>
@@ -124,9 +124,9 @@
                 <i class="trash icon"></i>
               </div>
             </td>
-            <td>
+            <td v-if="selected_event">
               1
-              <input type="range" v-model.number="ticket.amount" min="1" :max="event.seats" style="width:75%">
+              <input type="range" v-model.number="ticket.amount" min="1" :max="selected_event.seats" style="width:75%">
               {{ selected_event.seats }}
             </td>
           </tr>
@@ -144,7 +144,7 @@
   import flatpickr from 'vue-flatpickr-component'
   import 'flatpickr/dist/flatpickr.css'
 
-  const SERVER = "http://10.51.158.161:8000"
+  const SERVER = "http://10.51.134.194:8000"
 
   export default {
     data: () => ({
@@ -161,7 +161,9 @@
       isLoading        : true,
       event_type_id    : null,
     }),
+
     components: { flatpickr },
+
     watch : {
       async date() { 
         this.isLoading = true
@@ -170,16 +172,26 @@
       },
       selected_tickets: {
         handler : function() { 
+          this.selected_tickets
           this.$store.commit('CALCULATE_TOTALS')
-          this.selected_tickets 
         },
         deep : true,
       },
-      tickets() { this.selected_tickets = this.tickets }
+      tickets(newValue) { 
+        this.selected_tickets = newValue
+      },
+      event()   { 
+        if (this.tickets.length > 0)
+          this.selected_tickets = this.tickets 
+      }
     },
+    
     methods: {
+      
       format,
+
       distanceInWordsToNow,
+
       // Fetch Events
       async fetchEventOptions() {
         let date = format(new Date(this.date), "YYYY-MM-DD")
@@ -200,6 +212,7 @@
           alert(`fetchEventOptions in EventForm failed: ${ error.message }`)
         }
       },
+
       // Fetch Sale Tickets
       async fetchSaleTickets() {
         try {
@@ -215,6 +228,7 @@
           alert(`fetchSaleTickets in EventForm failed: ${error.message}`)
         }
       },
+
       // Fetch Tickets Types
       async fetchTicketsTypes() {
         try {
@@ -233,32 +247,41 @@
           alert(`fetchTicketTypes in EventForm failed: ${error.message}`)
         }
       },
+
       // Remove ticket from state
       removeTicket(id) {
         this.$store.commit('REMOVE_TICKET', { index: this.$vnode.key, id })
       }
     },
+
     async created() {
+
       this.isLoading = true
       
-      if (this.$route.name == "edit") {
-        this.event_type_id = this.event.type.id
-        this.date = format(new Date(this.event.start), "dddd, MMMM D, YYYY")
-    
-      } else if (this.$route.name == "create") {
-        this.event_type_id = this.$route.query.type
-      }
-      await this.fetchEventOptions()
+      this.event_type_id = this.$route.query.type
+
       await this.fetchTicketsTypes()
+
+      await this.fetchEventOptions()
+      
+      
+
       this.isLoading = false
     },
+    
     computed: {
 
-      selected_event() { return this.events_data.find(event => event.id == this.event) },
+      selected_event() { 
+        if (this.events_data && this.events_data.length > 0)
+          return this.events_data.find(event => event.id == this.event) 
+        else 
+          return null
+      },
 
       selected_tickets: {
         set(value) { 
           const selected_tickets = this.tickets_data.filter(ticket => value.includes(ticket.id))
+          selected_tickets.forEach(ticket => Object.assign( ticket.event, { id: this.event } ))
           this.$store.commit('SET_SELECTED_TICKETS', { index: this.$vnode.key, selected_tickets })
         },
         get() { return this.$store.getters.sale.selected_tickets[this.$vnode.key] || [] }
@@ -289,13 +312,14 @@
         set(value) { 
           //value.event.id = this.event.id
           //value.forEach(ticket => Object.assign(ticket.event, {id: this.event } ))
-          this.$store.commit('SET_TICKETS', { index: this.$vnode.key, tickets: value, event: this.event }) 
+          this.$store.commit('SET_TICKETS', { index: this.$vnode.key, tickets: value }) 
         },
         get()      { 
           const tickets = this.$store.getters.sale.tickets[this.$vnode.key] 
           return tickets || []
           },
       },
+
     },
   }
 </script>

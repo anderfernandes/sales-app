@@ -1,33 +1,34 @@
 import axios from "axios"
 
-const SERVER = "http://10.51.158.161:8000"
+const SERVER = "http://10.51.134.194:8000"
 
 let getDefaultState = () => ({
     // Sale data
     sale: {
-      creator_id       : 3,
-      status           : "open",
-      sell_to          : null,
-      customer         : null,
-      dates            : [],
-      grades           : [],
-      products         : [],
-      events           : [],
-      tickets          : [],
-      selected_tickets : [],
-      taxable          : 0,
-      payment_method   : null,
-      tendered         : 0,
-      change_due       : 0,
-      reference        : null,
-      payments         : [],
-      memo             : null, // New memo
-      memos            : [],
-      subtotal         : 0,
-      tax              : 0,
-      paid             : 0,
-      total            : 0,
-      balance          : 0,
+      creator_id        : 3,
+      status            : "open",
+      sell_to           : null,
+      customer          : null,
+      dates             : [],
+      grades            : [],
+      products          : [],
+      selected_products : [],
+      events            : [],
+      tickets           : [],
+      selected_tickets  : [],
+      taxable           : 0,
+      payment_method    : null,
+      tendered          : 0,
+      change_due        : 0,
+      reference         : null,
+      payments          : [],
+      memo              : null, // New memo
+      memos             : [],
+      subtotal          : 0,
+      tax               : 0,
+      paid              : 0,
+      total             : 0,
+      balance           : 0,
     },
 
     // Options for dropdowns throughout form
@@ -43,7 +44,8 @@ let getDefaultState = () => ({
 
     numberOfEvents  : 1,
     grades          : [],
-    products        : [],
+    products        : [], // options for dropdown
+    product_options : [], // full object with all product options
     payment_methods : [],
     settings        : {},
 })
@@ -55,7 +57,7 @@ export default {
   mutations : {
 
     SET_SALE(state, payload) {
-      Object.assign(state.sale, payload)
+      Object.assign(state, { sale : payload })
     },
 
     // RESET_CREATE
@@ -73,21 +75,34 @@ export default {
 
     // SET_PRODUCTS
     SET_PRODUCTS(state, payload) {
-      Object.assign(state.products, payload)
+      Object.assign(state, { products : payload })
+    },
+
+    // SET_SELECTED_PRODUCTS
+    SET_SELECTED_PRODUCTS(state, payload) {
+      let selected_products = state.product_options.filter(product_option => payload.includes(product_option.id))
+      Object.assign(state.sale, { selected_products })
+    },
+
+    // SET_SELECTED_PRODUCTS
+    SET_PRODUCT_OPTIONS(state, payload) {
+      Object.assign(state, { product_options: payload })
+    },
+
+    REMOVE_PRODUCT(state, payload) {
+      // Find product
+      let i = state.sale.products.findIndex(product => product == payload.id)
+      let j = state.sale.selected_products.findIndex(product => product.id == payload.id)
+      // Reset count
+      Object.assign(state.sale.selected_products[i], { amount: 1 })
+      // Remove from array
+      state.sale.products.splice(i, 1)
+      state.sale.selected_products.splice(i, j)
     },
 
     // SET_SETTINGS
     SET_SETTINGS(state, payload) {
       Object.assign(state.settings, payload)
-    },
-
-    REMOVE_PRODUCT(state, payload) {
-      // Find product
-      let i = state.sale.products.findIndex(product => product.id == payload.id)
-      // Reset count
-      Object.assign(state.sale.products[i], { amount: 1 })
-      // Remove from array
-      state.sale.products.splice(i, 1)
     },
 
     // SET_PAYMENT_METHODS
@@ -103,8 +118,8 @@ export default {
       tax = parseFloat(tax.toFixed(2))
 
       // Calculating product totals
-      if (state.sale.products.length > 0)
-        productTotals = state.sale.products.reduce((total, product) =>
+      if (state.sale.selected_products.length > 0)
+        productTotals = state.sale.selected_products.reduce((total, product) =>
           (total + (product.amount * product.price)), 0)
 
       // Calculating ticket totals
@@ -160,7 +175,10 @@ export default {
     },
 
     SET_NUMBER_OF_EVENTS(state, payload) {
-      state.numberOfEvents++
+      if (payload)
+        Object.assign(state, { numberOfEvents : parseInt(payload) })
+      else
+        state.numberOfEvents++
     },
 
     SET_DATES(state, payload) {
@@ -180,7 +198,7 @@ export default {
           text : grade.name,
           value: grade.id,
         }))
-        commit('SET_GRADES', await grades)
+        commit('SET_GRADES', grades)
       } catch (error) {
         alert(`Error in actions.fetchGrades: ${ error.message }`)
       }
@@ -189,22 +207,20 @@ export default {
     // Fetch products
     async fetchProducts({ commit }) {
       try {
+        let product_options = []
         const response = await axios.get(`${SERVER}/api/products`)
-        let products   = response.data.data.map(product => ({
-          key   : product.id,
-          text  : product.name,
-          value : {
-            id          : product.id,
-            amount      : 1,
-            price       : product.price,
-            name        : product.name,
-            description : product.description,
-            type        : product.type,
-            cover       : product.cover,
-          },
-          icon  : 'box',
-        }))
-        commit("SET_PRODUCTS", await products)
+        let products   = response.data.data.map(product => {
+          Object.assign(product, { amount : 1 })
+          product_options.push(product)
+          return {
+            key   : product.id,
+            text  : product.name,
+            value : product.id,
+            icon  : 'box',
+          }
+        })
+        commit("SET_PRODUCTS", products)
+        commit("SET_PRODUCT_OPTIONS", product_options)
       } catch (error) {
         alert(`Error in actions.fetchProducts: ${ error.message }`)
       }
