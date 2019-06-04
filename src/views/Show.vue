@@ -258,6 +258,7 @@
                 <th>Method</th>
                 <th>Paid</th>
                 <th>Tendered</th>
+                <th>Change</th>
                 <th>Date</th>
                 <th>Cashier</th>
               </tr>
@@ -273,6 +274,7 @@
                 </td>
                 <td>$ {{ payment.paid }}</td>
                 <td>$ {{ payment.tendered }}</td>
+                <td>$ {{ (parseFloat(payment.tendered) - parseFloat(payment.paid)).toFixed(2) }}</td>
                 <td>
                   {{ format(new Date(payment.created_at), $dateFormat.long) }}
                   ({{ distanceInWords(new Date(), new Date(payment.created_at), { addSuffix: true }) }})
@@ -377,9 +379,10 @@
     },
     
     async created() {
-      document.title = `Astral - Sale #${this.sale.id}`
+
       this.isLoading = await true
       await this.fetchSale()
+      document.title = `Astral - Sale #${ this.sale.id }`
       this.isLoading = await false
     },
     

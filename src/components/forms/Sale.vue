@@ -104,7 +104,7 @@
                               label-position="left" 
                               color="black" 
                               icon="calendar plus alternate"
-                              @click.prevent="addEvent"
+                              @click.prevent="$store.commit('SET_NUMBER_OF_EVENTS')"
                               >
                     Add Another Event
                   </sui-button>
@@ -525,8 +525,6 @@
       ...mapActions(['fetchCustomers', 'fetchOrganizations', 'fetchGrades', 'fetchProducts', 
         'fetchPaymentMethods', 'fetchSettings']),
       
-      ...mapMutations({ addEvent : 'SET_NUMBER_OF_EVENTS' }),
-      
       async submit(event) {
 
         event.preventDefault()
@@ -563,7 +561,6 @@
           if (this.$route.name == "create") {
             response = await axios.post(`${SERVER}/api/sales`, data)
             let sale = response.data.data
-            this.$store.commit('SET_MESSAGE', `Sale #${sale.id} created sucessfully!`)
           }
             
           else if (this.$route.name == "edit") {
