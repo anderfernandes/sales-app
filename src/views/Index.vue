@@ -33,18 +33,18 @@
         </sui-modal-actions>
       </modal>
       
-      <div class="ui form" v-if="!isLoading">
+      <div class="ui form">
         <div class="five inline fields">
           <div class="field">
             <div class="ui fluid icon input">
-              <input type="number" min="1" placeholder="Sale #">
+              <input v-model="query.id" type="number" min="1" placeholder="Sale #">
               <i class="search icon"></i>
             </div>
           </div>
           <div class="field">
             <sui-dropdown placeholder="All Customers"
                           v-model="query.customer_id" 
-                          :options="customers" 
+                          :options="customers.withoutOrganization" 
                           search fluid selection />
           </div>
           <div class="field">
@@ -56,7 +56,7 @@
           <div class="field">
             <sui-dropdown placeholder="All Sales Statuses" 
                           v-model="query.status" 
-                          :options="statuses" 
+                          :options="sale_statuses" 
                           search fluid selection />
           </div>
           <div class="field">
@@ -68,7 +68,7 @@
         </div>
       </div>
 
-      <div v-if="sales.length > 0">  
+      <div v-if="sales && sales.length > 0">  
         <transition-group name="list" tag="div" appear>
           <div :class="`ui ${sale.status} sale segment`" v-for="sale in sales" :key="sale.id" 
               :style="getSaleColor(sale.status)" 
@@ -94,28 +94,44 @@
 
 <script>
 
-  import { mapActions, mapGetters } from 'vuex'
+  import { mapActions, mapGetters, mapState } from 'vuex'
   
   export default {
-    data: () => ({
-      query: {
-        id              : null,
-        customer_id     : null,
-        organization_id : null,
-        status          : null,
-        cashier_id      : null,
-      },
-    }),
+
     components: { 
       SaleBox  : () => import('../components/SaleBox'), 
       Observer : () => import('../components/Observer'),
       Modal    : () => import('../components/Modal'),
     },
+
     methods: {
       ...mapActions(['fetchSales', 'fetchCustomers', 'fetchOrganizations', 'fetchCashiers', 'fetchEventTypes'])
     },
+
+    watch : {
+      query : {
+        handler : function() {
+          this.page = 1
+          this.fetchSales()
+        },
+        deep    : true,
+      }
+    },
+
     computed: {
-      ...mapGetters(['sales', 'customers', 'organizations', 'cashiers', 'event_types', 'statuses', 'page']),
+
+      page : {
+        set(value) { this.$store.commit('SET_PAGE', value) },
+        get()      { this.$store.getters.page },
+      },
+
+      ...mapGetters(['sales', 'customers', 'organizations', 'cashiers', 'event_types', 'statuses', 'query']),
+
+      sale_statuses() {
+        this.statuses.unshift({ key : 0, value : null, text : "All Sale Statuses" })
+        const sale_statuses = this.statuses
+        return sale_statuses
+      },
       
       // Loading spinner
       isLoading: {
@@ -126,12 +142,16 @@
 
     },
     async created() {
+      
       document.title = `Astral - Sales`
+      
       this.isLoading = await true
+      
       await this.fetchEventTypes()
       await this.fetchCustomers()
       await this.fetchOrganizations()
       await this.fetchCashiers()
+      
       this.isLoading = await false
     },
   }

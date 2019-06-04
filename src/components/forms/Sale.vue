@@ -66,7 +66,7 @@
                   <label>Customer</label>
                   <sui-dropdown fluid direction="upward"
                                 v-model="sale.customer"
-                                :options="customers"
+                                :options="customers.withOrganization"
                                 placeholder="Customer"
                                 search selection></sui-dropdown>
                   <transition mode="out-in" name="fade">

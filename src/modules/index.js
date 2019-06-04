@@ -15,13 +15,19 @@ export default {
   // State
   state: {
     sales         : [],
-    customers     : [],
+    customers     : {},
     organizations : [],
     cashiers      : [],
     event_types   : [],
     statuses      : saleStatuses,
     page          : 1,
-    q             : "",
+    query         : {
+      id              : null,
+      customer_id     : null,
+      organization_id : null,
+      status          : null,
+      cashier_id      : null,
+    },
     isLoading     : true,
     showModal     : false,
     
@@ -34,7 +40,7 @@ export default {
   mutations: {
     // SET SALES
     SET_SALES(state, payload) {
-      Object.assign(state.sales, payload)
+      Object.assign(state, { sales : payload })
     },
 
     // SET_CUSTOMERS
@@ -44,17 +50,17 @@ export default {
 
     // SET_ORGANIZATIONS
     SET_ORGANIZATIONS(state, payload) {
-      Object.assign(state.organizations, payload)
+      Object.assign(state, { organizations: payload })
     },
 
     // SET_CASHIERS
     SET_CASHIERS(state, payload) {
-      Object.assign(state.cashiers, payload)
+      Object.assign(state, { cashiers : payload })
     },
 
     // SET_IS_LOADING
     SET_IS_LOADING(state, payload) {
-      state.isLoading = payload
+      Object.assign(state, { isLoading : payload })
     },
 
     // SET_EVENT_TYPES
@@ -66,6 +72,15 @@ export default {
     TOGGLE_MODAL(state, payload) {
       state.showModal = payload
     },
+
+    // SET_QUERY
+    SET_QUERY(state, payload) {
+      Object.assign(state, { query : payload })
+    },
+
+    SET_PAGE(state, payload) {
+      Object.assign(state, { page : payload })
+    },
   },
   // Actions
   actions: {
@@ -73,13 +88,31 @@ export default {
     // Fetches sales, pagination aware
     async fetchSales({ state, commit }) {
       try {
-        let url = state.q.length == 0
-                    ? `${SERVER}/api/sales?sort=desc&orderBy=id&page=${state.page}`
-                    : `${SERVER}/api/sales?sort=desc&orderBy=id&page=${state.page}${state.q}`
         
-        const response = await axios.get(url)
-        const sales = response.data.data
+        const url = new URL(`${SERVER}/api/sales?sort=desc&orderBy=id`)
+
+        const params = new URLSearchParams(url.search)
+
+        params.set("page", state.page++)
+
+        for (let [key, value] of Object.entries(state.query)) {
+          if (value)
+            params.set(`${key}`, value)
+        }
+
+        url.search = params.toString()
+
+        const response = await axios.get(url.toString())
+
+        let sales = []
+
+        if (state.page < 3)
+          sales = response.data.data
+        else
+          sales = [...state.sales, ...response.data.data]
+
         commit("SET_SALES", sales)
+
       } catch (error) {
         alert(`Error in fetchSales: ${error.message}`)
       }
@@ -89,12 +122,22 @@ export default {
     async fetchCustomers({ commit }) {
       try {
         const response = await axios.get(`${SERVER}/api/customers`)
-        let customers = response.data.map(customer => ({
+        
+        let withOrganization = response.data.map(customer => ({
           key   : customer.id,
           value : customer.id,
           text  : `${customer.name} (${customer.role} ${ customer.organization.id == 1 ? '' : 'at ' + customer.organization.name })`,
         }))
-        commit("SET_CUSTOMERS", customers)
+        
+        let withoutOrganization = response.data.map(customer => ({
+          key   : customer.id,
+          value : customer.id,
+          text  : customer.name,
+        }))
+
+        withoutOrganization.unshift({ key: 0, value : null, text : "All Customers" })
+
+        commit("SET_CUSTOMERS", { withOrganization, withoutOrganization })
       } catch (error) {
         alert(`Error in fetchCustomers: ${error.message}`)
       }
@@ -172,7 +215,7 @@ export default {
     event_types      : state => state.event_types,
     statuses         : state => state.statuses,
     page             : state => state.page,
-    q                : state => state.q,
+    query            : state => state.query,
     isLoading        : state => state.isLoading,
     currencySettings : state => state.currencySettings,
     showModal        : state => state.showModal,

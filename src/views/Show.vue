@@ -8,7 +8,7 @@
     <div class="ui basic segment">
       
       <modal id="refund">
-        <div class="ui icon header" style="padding-bottom: 0">
+        <div class="ui icon header" style="padding-bottom: 0" v-if="sale.payments && sale.payments.length > 0">
           <i class="refresh icon"></i> Refund Sale
           <div class="sub header" style="color:white">You are about to refund this sale</div>
         </div>
