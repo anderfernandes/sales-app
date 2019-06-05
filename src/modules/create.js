@@ -114,8 +114,6 @@ export default {
     CALCULATE_TOTALS(state) {
       let productTotals = 0
       let ticketTotals  = 0
-      let tax = (state.settings.tax * state.sale.taxable) * state.sale.subtotal
-      tax = parseFloat(tax.toFixed(2))
 
       // Calculating product totals
       if (state.sale.selected_products.length > 0)
@@ -130,8 +128,10 @@ export default {
       })
 
       let subtotal   = productTotals + ticketTotals
+      let tax = (state.settings.tax * state.sale.taxable) * subtotal
+      tax     = Number(Math.round(tax + 'e2') + 'e-2')
       let total      = subtotal + tax
-      let balance    = (total - state.sale.tendered) > 0 ? total - state.sale.tendered : 0
+      let balance    = (total - state.sale.tendered) > 0 ? total - state.sale.tendered - state.sale.paid : 0
       let change_due = (state.sale.tendered - total) > 0 ? state.sale.tendered - total : 0
 
       Object.assign(state.sale, {

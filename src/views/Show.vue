@@ -16,7 +16,7 @@
           <div class="ui inverted form">
             <div class="required field">
               <label for="memo">Memo</label>
-              <textarea rows="2" v-model="refundMemo"
+              <textarea rows="2" v-model="refund_memo"
                         placeholder="Explain with at least 10 characters why you are refunding this sale"></textarea>
             </div>
           </div>
@@ -25,7 +25,8 @@
           <div class="ui red cancel inverted button" @click="$store.commit('TOGGLE_MODAL', false)">
             <i class="remove icon"></i> Cancel Refund
           </div>
-          <sui-button color="yellow" inverted icon="refresh" :disabled="refundMemo == null || refundMemo.length < 10">
+          <sui-button color="yellow" inverted icon="refresh" :disabled="refund_memo == null || refund_memo.length < 10"
+                      @click.prevent="submitRefund">
             Confirm Refund of $ {{ sale.total }}
           </sui-button>
         </div>
@@ -62,7 +63,8 @@
         </sui-dropdown-menu>
       </sui-dropdown>
 
-      <div class="ui right floated red button" @click="$store.commit('TOGGLE_MODAL', true)">
+      <div class="ui right floated red button" @click="$store.commit('TOGGLE_MODAL', true)" 
+                  v-if="sale.payments && sale.payments.length > 0 && !sale.refund">
         <i class="refresh icon"></i>
         Refund
       </div>
@@ -264,7 +266,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="payment in sale.payments" :key="payment.id">
+              <tr v-for="payment in sale.payments" :key="payment.id" :class="payment.paid < 0 ? 'error' : 'positive'">
                 <td>
                   <div class="ui header">{{ payment.id }}</div>
                 </td>
@@ -368,9 +370,9 @@
   export default {
     
     data: () => ({
-      sale       : {},
-      refundMemo : null,
-      memo       : null,
+      sale        : {},
+      refund_memo : null,
+      memo        : null,
     }),
     
     components: { 
@@ -399,6 +401,7 @@
     },
     
     methods : {
+      
       async fetchSale() {
         try {
           const response = await axios.get(`${SERVER}/api/sale/${this.$route.params.id}`)
@@ -409,15 +412,51 @@
       },
     
       async submitMemo() {
+        
+        const data = {
+          sale_id    : this.sale.id,
+          memo       : this.memo,
+          creator_id : 3,
+        }
+
+        try {
+          
+          const response = await axios.post(`${SERVER}/api/memos`, data)
+          
+          this.memo = null
+          
+          await this.fetchSale()
+          
+          this.$store.commit("SET_ALERT", {
+            type    : "success",
+            title   : "Success!",
+            icon    : "thumbs up",
+            message : response.data.message,
+          })
+
+          this.$store.commit("TOGGLE_SHOW_ALERT", true)
+
+        } catch (error) {
+          alert(`Error saving memo: ${error.message}`)
+        }
+
+      },
+
+      async submitRefund(event) {
+        
+        event.preventDefault()
+
+        this.$store.commit('TOGGLE_MODAL', false)
+
+        try {
           const data = {
-            sale_id    : this.sale.id,
-            memo       : this.memo,
             creator_id : 3,
+            memo       : this.refund_memo,
           }
-          try {
-            const response = await axios.post(`${SERVER}/api/memos`, data)
-            this.memo = null
-            await this.fetchSale()
+          
+          const response = await axios.post(`${SERVER}/api/sales/${this.$route.params.id}/refund`, data)
+
+          await this.fetchSale()
             
             this.$store.commit("SET_ALERT", {
               type    : "success",
@@ -425,13 +464,14 @@
               icon    : "thumbs up",
               message : response.data.message,
             })
+
             this.$store.commit("TOGGLE_SHOW_ALERT", true)
 
-          } catch (error) {
-            alert(`Error saving memo: ${error.message}`)
-          }
+        } catch (error) {
+
         }
       }
+    }
   }
 </script>
 

@@ -422,7 +422,7 @@
       },
       "sale.taxable"        : function() { 
         this.$store.commit('CALCULATE_TOTALS') 
-        if (this.payment_method != 1)
+        if (this.sale.payment_method != 1 && this.sale.payment_method != null)
           this.setTendered()
       },
       "sale.tendered"       : function() { this.$store.commit('CALCULATE_TOTALS') },
