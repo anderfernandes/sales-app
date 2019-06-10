@@ -1,6 +1,6 @@
 import axios from "axios"
 
-const SERVER = "http://10.51.134.194:8000"
+const SERVER = "http://10.51.150.214:8000"
 
 let getDefaultState = () => ({
     // Sale data

@@ -13,24 +13,24 @@
         <div id="form" v-if="!isLoading">
           <!--- Buttons --->
           <div class="ui form">
-            <div class="four inline fields" style="margin-bottom: 0">
+            <div class="four inline fields" id="sale-form-fixed">
               <div class="field">
-              <sui-button basic color="black" icon="left chevron" 
-                          @click="$router.push({ name: 'index' })">
-                Back
-              </sui-button>
-              <sui-button @click="submit" label-position="left" color="green" icon="save"
-                          :disabled="!enableSubmit">
-                Save
-              </sui-button>
-            </div>
+                <sui-button basic color="black" icon="left chevron" 
+                            @click="$router.push({ name: 'index' })">
+                  Back
+                </sui-button>
+                <sui-button @click="submit" label-position="left" color="green" icon="save"
+                            :disabled="!enableSubmit">
+                  Save
+                </sui-button>
+              </div>
               <div class="field"></div>
               <div class="required field" style="text-align: right">
                 <label>Status</label>
               </div>
-              <div class="required field" style="padding: 0">
-                <sui-dropdown fluid selection direction="downward"
-                              v-model="sale.status"
+              <div class="required field" style="padding-right: 0">
+                <sui-dropdown fluid selection direction="downward" v-if="statuses"
+                              v-model="sale.status" label="Status"
                               :options="statuses"
                               placeholder="Sale Status"
                 />
@@ -50,7 +50,7 @@
               <sui-form>
                 <sui-form-field required>
                   <label>Sell to</label>
-                  <sui-dropdown fluid selection direction="upward"
+                  <sui-dropdown fluid selection direction="upward" v-if="sell_to"
                                 v-model="sale.sell_to"
                                 :options="sell_to"
                                 placeholder="Sell To"
@@ -64,7 +64,7 @@
                 </sui-form-field>
                 <sui-form-field required>
                   <label>Customer</label>
-                  <sui-dropdown fluid direction="upward"
+                  <sui-dropdown fluid direction="upward" v-if="customers.withOrganization"
                                 v-model="sale.customer"
                                 :options="customers.withOrganization"
                                 placeholder="Customer"
@@ -78,11 +78,11 @@
                 </sui-form-field>
                 <sui-form-field>
                   <label>Grades</label>
-                  <sui-dropdown fluid multiple direction="upward"
+                  <sui-dropdown fluid multiple direction="upward" v-if="grades"
                                 v-model="sale.grades"
                                 :options="grades"
                                 placeholder="Grades"
-                                selection 
+                                selection
                   />
                 </sui-form-field>
   
@@ -117,10 +117,10 @@
                   </div>
                   <div class="ui form">
                       <div class="field">
-                        <sui-dropdown fluid selection multiple search
+                        <sui-dropdown fluid selection multiple search v-if="products"
                                       placeholder="Select products"
                                       :options="products"
-                                      v-model="sale.products" v-if="products[0].icon != undefined"
+                                      v-model="sale.products"
                         />
                     </div>
                   </div>
@@ -196,8 +196,8 @@
                 <div class="four fields">
                   <div class="required field">
                     <label>Taxable</label>
-                    <sui-dropdown v-model="sale.taxable" direction="upward"
-                                  :options="taxable"
+                    <sui-dropdown v-model="sale.taxable" direction="upward" v-if="taxable"
+                                  :options="taxable" icon=""
                                   placeholder="Taxable"
                                   selection />
                   </div>
@@ -205,7 +205,7 @@
                 <div class="four fields">
                   <div class="field">
                     <label>Payment Method</label>
-                    <sui-dropdown fluid direction="upward"
+                    <sui-dropdown fluid direction="upward" v-if="payment_methods"
                                   v-model="sale.payment_method"
                                   :options="payment_methods"
                                   placeholder="Payment Method"
@@ -228,11 +228,15 @@
                   </sui-form-field>
                   <sui-form-field :error="errors && errors.hasOwnProperty('reference')">
                     <label>Reference</label>
-                    <input type="tel" placeholder="Reference" v-model.number="sale.reference">
+                    <sui-input placeholder="Reference" :error="!hasReference" v-model.number="sale.reference" />
                     <transition mode="in-out" name="fade">
                         <sui-label basic color="red" pointing 
                         v-if="errors && errors.hasOwnProperty('reference')">
                           {{ errors.reference[0] }}
+                        </sui-label>
+                        <sui-label basic color="red" pointing 
+                        v-if="!hasReference">
+                          What's the reference of the Credit Card or Check?
                         </sui-label>
                     </transition>
                   </sui-form-field>
@@ -264,7 +268,7 @@
                       <td>$ {{ payment.total }}</td>
                       <td>
                           {{ format(new Date(payment.created_at), $dateFormat.long) }}
-                          ({{ distanceInWords(new Date(), new Date(payment.created_at)) }})
+                          ({{ distanceInWords(new Date(), new Date(payment.created_at), { addSuffix: true }) }})
                       </td>
                       <td>
                         <i class="user circle icon"></i>
@@ -292,7 +296,7 @@
                     <div class="ui black label">{{ memo.author.role }}</div>
                     <div class="metadata">
                       {{ format(new Date(memo.created_at), $dateFormat.long) }}
-                      ({{ distanceInWords(new Date(), new Date(memo.created_at)) }})
+                      ({{ distanceInWords(new Date(), new Date(memo.created_at), { addSuffix: true }) }})
                     </div>
                   </div>
                   <div class="text">{{ memo.message }}</div>
@@ -401,7 +405,7 @@
   import axios  from "axios"
   import format from "date-fns/format"
 
-  const SERVER = "http://10.51.134.194:8000"
+  const SERVER = "http://10.51.150.214:8000"
 
   export default {
     data: () => ({
@@ -409,23 +413,30 @@
     }),
     
     watch: {
+
       "sale.products": {
         handler : function(newValue) { this.$store.commit('SET_SELECTED_PRODUCTS', newValue) },
         deep    : true,
       },
+      
       "sale.selected_products" : {
         handler: function() { 
           //this.sale.selected_products
           this.$store.commit('CALCULATE_TOTALS') 
-      },
+        },
         deep   : true,
       },
+      
       "sale.taxable"        : function() { 
         this.$store.commit('CALCULATE_TOTALS') 
         if (this.sale.payment_method != 1 && this.sale.payment_method != null)
           this.setTendered()
       },
-      "sale.tendered"       : function() { this.$store.commit('CALCULATE_TOTALS') },
+      
+      "sale.tendered"       : function() { 
+        this.$store.commit('CALCULATE_TOTALS') 
+      },
+      
       "sale.payment_method" : function() { this.setTendered() }
     },
     
@@ -587,6 +598,10 @@
     },
 
     computed : {
+
+      hasReference() {
+        return this.sale.payment_method == 1 ? true : this.sale.reference != null || this.sale.payment_method == null
+      },
       
       sale: {
         set(value) { this.$store.commit("SET_SALE", value) },
@@ -594,7 +609,10 @@
       },
 
       enableSubmit() {
-        return (this.sale.sell_to != null && this.sale.status && (this.sale.tickets.length > 0 || this.sale.products.length > 0))
+        let hasSellTo            = this.sale.sell_to != null
+        let hasSaleStatus        = this.sale.status != null
+        let hasProductsOrTickets = (this.sale.tickets.length > 0 || this.sale.products.length > 0)
+        return (hasSellTo && hasSaleStatus && hasProductsOrTickets && this.hasReference)
       },
       
       ...mapGetters(['customers', 'organizations', 'statuses', 'sell_to', 'taxable', 
@@ -626,6 +644,17 @@
 </script>
 
 <style scoped>
+  
   textarea { font: inherit }
-</style>
 
+  #sale-form-fixed {
+    position: fixed;
+    width: 77.3%;
+    z-index: 100;
+    background-color: white;
+    margin-top: -2rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+</style>

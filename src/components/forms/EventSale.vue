@@ -144,7 +144,7 @@
   import flatpickr from 'vue-flatpickr-component'
   import 'flatpickr/dist/flatpickr.css'
 
-  const SERVER = "http://10.51.134.194:8000"
+  const SERVER = "http://10.51.150.214:8000"
 
   export default {
     data: () => ({

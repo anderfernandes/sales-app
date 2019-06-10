@@ -1,13 +1,13 @@
 import axios from "axios"
 
-const SERVER = "http://10.51.134.194:8000"
+const SERVER = "http://10.51.150.214:8000"
 
 const saleStatuses = [
   { key: "open",      text: "Open",      value: "open",      icon: "unlock"     },
   { key: "confirmed", text: "Confirmed", value: "confirmed", icon: "thumbs up"  },
   { key: "complete",  text: "Completed", value: "complete",  icon: "check"      },
   { key: "tentative", text: "Tentative", value: "tentative", icon: "help"       },
-  { key: "canceled",  text: "Canceled",  value: "tentative", icon: "remove"     },
+  { key: "canceled",  text: "Canceled",  value: "canceled",  icon: "remove"     },
   { key: "no show",   text: "No Show",   value: "no show",   icon: "thumbs down"},
 ]
 

@@ -56,8 +56,8 @@
           <div class="field">
             <sui-dropdown placeholder="All Sales Statuses" 
                           v-model="query.status" 
-                          :options="sale_statuses" 
-                          search fluid selection />
+                          :options="statuses" 
+                          fluid selection />
           </div>
           <div class="field">
             <sui-dropdown placeholder="All Cashiers" 
@@ -93,7 +93,7 @@
 
 <script>
 
-  import { mapActions, mapGetters, mapState } from 'vuex'
+  import { mapActions, mapGetters } from 'vuex'
   
   export default {
 
@@ -121,15 +121,21 @@
 
       page : {
         set(value) { this.$store.commit('SET_PAGE', value) },
-        get()      { this.$store.getters.page },
+        get()      { return this.$store.getters.page },
       },
 
-      ...mapGetters(['sales', 'customers', 'organizations', 'cashiers', 'event_types', 'statuses', 'query']),
+      ...mapGetters(['sales', 'customers', 'organizations', 'cashiers', 'event_types', 'query']),
 
-      sale_statuses() {
-        this.statuses.unshift({ key : 0, value : null, text : "All Sale Statuses" })
-        const sale_statuses = this.statuses
-        return sale_statuses
+      statuses() {
+        return [
+          { key: "all",       text: "All Sale Statuses",      value: null,      icon: ""             },
+          { key: "open",      text: "Open",                   value: "open",      icon: "unlock"     },
+          { key: "confirmed", text: "Confirmed",              value: "confirmed", icon: "thumbs up"  },
+          { key: "complete",  text: "Completed",              value: "complete",  icon: "check"      },
+          { key: "tentative", text: "Tentative",              value: "tentative", icon: "help"       },
+          { key: "canceled",  text: "Canceled",               value: "canceled",  icon: "remove"     },
+          { key: "no show",   text: "No Show",                value: "no show",   icon: "thumbs down"},
+        ]
       },
       
       // Loading spinner
@@ -155,3 +161,4 @@
     },
   }
 </script>
+
